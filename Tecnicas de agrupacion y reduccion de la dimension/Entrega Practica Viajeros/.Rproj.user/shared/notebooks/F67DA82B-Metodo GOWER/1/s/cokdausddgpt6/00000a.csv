@@ -1,0 +1,2 @@
+"0","viajeros.gow.tip=scale(viajeros.gow[,4:31])"
+"0","viajeros.gow.tip=cbind(viajeros.gow.tip, viajeros.gow[,1:3], viajeros.gow[31:35])"

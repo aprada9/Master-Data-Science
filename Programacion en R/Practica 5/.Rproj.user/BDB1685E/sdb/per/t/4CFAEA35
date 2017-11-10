@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1508154972204.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "4CFAEA35",
+    "lastKnownWriteTime" : 7521960745869770758,
+    "last_content_update" : 1508154972204,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "915CEB44",
+        "caption" : "Baloncesto",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=Baloncesto&cache_key=915CEB44",
+        "displayedObservations" : 18,
+        "environment" : "",
+        "object" : "Baloncesto",
+        "preview" : 0,
+        "totalObservations" : 18,
+        "variables" : 42
+    },
+    "relative_order" : 5,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

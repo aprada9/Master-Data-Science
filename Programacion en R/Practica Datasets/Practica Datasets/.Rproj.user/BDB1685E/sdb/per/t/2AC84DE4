@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1506358541816.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "2AC84DE4",
+    "lastKnownWriteTime" : 4321802184,
+    "last_content_update" : 1506358541816,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "6D056595",
+        "caption" : "female_names.2010",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=female_names.2010&cache_key=6D056595",
+        "displayedObservations" : 1734,
+        "environment" : "",
+        "object" : "female_names.2010",
+        "preview" : 0,
+        "totalObservations" : 1734,
+        "variables" : 2
+    },
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

@@ -1,0 +1,48 @@
+# El archivo viajeros.csv muestra los datos de 50.000 viajeros de los que tenemos información diversa como su nacionalidad,
+# su sexo, su edad, y, lo que más nos interesa, la valoración que ofrecen a un conjunto muy amplio de características, 
+# como su impresión general (en la columna del mismo nombre) o el alojamiento, 
+# entre otras (recogidas bajo el genérico valoración_xxx, donde xxx recoge el atributo concreto valorado).
+# 
+# Debe emitir un informe detallando si existen grupos de turistas homogéneos a partir de la valoración que dan
+# a los distintos servicios, tal y como se ha señalado. Deberá justificar que el análisis puede llevarse a cabo, 
+# el número de clusters a emplear, y la solución alcanzada. Se valorará, además de una correcta presentación,
+# la identificación de posibles relaciones de los clusters alcanzados con una o varias características adicionales 
+# (pista: piense en la posible concentración de viajeros en los clusters en función de su nacionalidad, de su profesión, 
+# de su sexo, edad o renta, o de una combinación de las mismas).
+
+
+viajeros2=read.csv("viajeros.csv", sep=",")
+viajeros2 = data.frame(viajeros2[,-1], row.names=viajeros2[,1])
+#hacemos que la primera columna del df se transforme en el nombre de las filas
+
+
+viajeros2 = na.omit(viajeros2) 
+head(viajeros2)
+
+#Hacemos numericos todos los valores
+performScaling= T # on/off para experimentar 
+if (performScaling) {
+}
+# Loop sobre cada columna
+
+for (colName in names(viajeros2)) {
+  # Comprueba si la columna es de datos numéricos.
+  if(class(viajeros2[,colName]) == 'integer' | class(viajeros2[,colName]) == 'numeric') {
+
+     # -- hasta aquí ;)
+     # escala la columna.
+     viajeros2[,colName] = scale(viajeros2[,colName])
+  }
+}
+
+
+quiebras.cor= cor(t(viajeros2[,-1]), method = "pearson")
+round(quiebras.cor[1:6, 1:6], 2)
+
+
+
+plot(viajerosv3) # display dendogram
+groups <- cutree(viajerosv3, k=3) # cut tree into 5 clusters
+# draw dendogram with red borders around the 5 clusters
+rect.hclust(viajerosv2, k=3, border="red") 
+

@@ -1,0 +1,201 @@
+---
+title: "Untitled"
+output: html_document
+---
+```{r}
+
+mData=read.csv("C:/Users/salva/Desktop/ignacio CUNEF/prediccion/Clase02/Datos/Advertising.csv")
+regres01=lm(Sales~TV+Radio+Newspaper,data=mData)
+summary(regres01)
+
+library(car)
+qqPlot(regres01, labels=row.names(mData), id.method="identify",
+       simulate=TRUE, main="Q-Q Plot")
+```
+```{r}
+residplot <- function(fit, nbreaks=10) {
+  z <- rstudent(fit)
+  hist(z, breaks=nbreaks, freq=FALSE,
+       xlab="Studentized Residual",
+       main="Distribution of Errors")
+  rug(jitter(z), col="brown")
+  curve(dnorm(x, mean=mean(z), sd=sd(z)),
+        add=TRUE, col="blue", lwd=2)
+  lines(density(z)$x, density(z)$y,
+        col="red", lwd=2, lty=2)
+  legend("topright",
+         legend = c( "Normal Curve", "Kernel Density Curve"),
+         lty=1:2, col=c("blue","red"), cex=.7)
+}
+
+residplot(regres01)
+```
+
+```{r}
+vResid=resid(regres01)
+library(fBasics)
+jbTest(vResid)
+shapiro.test(vResid)
+```
+#linealidad
+```{r}
+crPlots(regres01)
+
+```
+#varianza constante
+```{r}
+ncvTest(regres01)
+spreadLevelPlot(regres01)
+```
+
+#constrastacion global hipotesis
+```{r}
+library(gvlma)
+gvmodel <- gvlma(regres01) 
+summary(gvmodel)
+```
+
+#multicolianilad
+```{r}
+vif(regres01)
+sqrt(vif(regres01)) > 2
+```
+#atipicos
+```{r}
+outlierTest(regres01)
+```
+#extremos
+```{r}
+hat.plot <- function(fit) {
+  p <- length(coefficients(fit))
+  n <- length(fitted(fit))
+  plot(hatvalues(fit), main="Index Plot of Hat Values")
+  abline(h=c(2,3)*p/n, col="red", lty=2)
+  identify(1:n, hatvalues(fit), names(hatvalues(fit)))
+}
+hat.plot(regres01)
+```
+
+```{r}
+cutoff <- 4/(nrow(mData)-length(regres01$coefficients)-2)
+plot(regres01, which=4, cook.levels=cutoff)
+abline(h=cutoff, lty=2, col="red")
+```
+
+```{r}
+avPlots(regres01, ask=FALSE, id.method="identify")
+```
+```{r}
+##mientras mas grande es el circulo mas influyente es
+#casi siempre se pone este y el de q.
+influencePlot(regres01, id.method="identify", main="Influence Plot", 
+              sub="Circle size is proportial to Cook's Distance" )
+```
+
+#comparacion de modelos
+```{r}
+regres02=lm(Sales~TV+Radio,data=mData)
+anova(regres02, regres01)
+```
+
+#AIC VS BIC
+```{r}
+AIC(regres01,regres02)
+BIC(regres01,regres02)
+```
+#MEJOR MODELO SEGUN NUMERO DE REGRESORES
+```{r}
+library (leaps)
+regfit.full=regsubsets(Sales~.-X,mData )
+reg.summary=summary(regfit.full)
+reg.summary
+#AHORA MIRO CUAL ES MEJOR
+reg.summary$rss
+reg.summary$cp
+reg.summary$aic
+reg.summary$bic
+```
+#AHORA LO HACEMOS POR ETAPAS Y NO TODOS JUNTOS.
+```{r}
+library(MASS)
+
+regfit.fwd=regsubsets(Sales~.-X,mData,method ="forward")
+summary (regfit.fwd )
+library(MASS)
+
+stepAIC(regres01, direction="backward")
+regres03=lm(Sales~TV+Radio+Newspaper+TV:Radio+TV:Newspaper,data=mData)
+stepAIC(regres03, direction="both")
+```
+
+#validacion cruzada
+```{r}
+library(ISLR)
+set.seed(250)
+numData=nrow(mData)
+train=sample(numData ,numData/2)
+
+regres.train =lm(Sales~.-X,mData ,subset =train )
+attach(mData)  #al poner attach tomo las mdata$ como variables y las puedo llamar directamente
+mean((Sales-predict(regres.train ,Auto))[-train ]^2)  #es el error cuadratico medio mce
+
+regres.train2 =lm(Sales~.-X-Newspaper,mData ,subset =train )
+mean((Sales-predict(regres.train2 ,Auto))[-train ]^2)
+```
+#uo fuera de la validacion
+```{r}
+glm.fit1=glm(Sales~.-X,mData,family = gaussian())
+coef(glm.fit1)
+library (boot)
+cv.err =cv.glm(mData,glm.fit1)
+cv.err$delta
+glm.fit2=glm(Sales~.-X-Newspaper,mData,family = gaussian())
+cv.err2 =cv.glm(mData,glm.fit2)
+cv.err2$delta
+```
+
+```{r}
+glm.fit1=glm(Sales~.-X,mData,family = gaussian())
+set.seed(250)
+
+library (boot)
+cv.err =cv.glm(mData,glm.fit1,K=10)
+cv.err$delta
+glm.fit2=glm(Sales~.-X-Newspaper,mData,family = gaussian())
+cv.err2 =cv.glm(mData,glm.fit2,K=10)
+cv.err2$delta
+```
+
+```{r}
+zData=data.frame(scale(mData))
+zlm.fit=lm(Sales~.-X-Newspaper,zData)
+coef(zlm.fit)
+```
+```{r}
+library(rminer)
+nelems=function(d) paste(nrow(d),"x",ncol(d))
+#missing Data
+# missing data example
+# since sale does not include missing data, lets
+# synthetically create such data:
+set.seed(12345) # set for replicability
+mData3=mData
+N=20 # randomly assign N missing values (NA) to 2nd and 3rd attributes
+srow1=sample(1:nrow(mData),N) # N rows
+srow2=sample(1:nrow(mData),N) # N rows
+mData3[srow1,2]=NA # tv
+mData3[srow2,3]=NA # radio
+print("Show summary of sales attributes (with NA values):")
+
+print(summary(mData3[,1:2]))
+
+cat("mData3:",nelems(mData3),"\n")
+cat("NA values:",sum(is.na(mData3)),"\n")
+print("-- 1st method: case deletion --")
+
+```
+```{r}
+mData4=na.omit(mData3)
+cat("mData4:",nelems(mData4),"\n")
+cat("NA values:",sum(is.na(mData4)),"\n")
+```

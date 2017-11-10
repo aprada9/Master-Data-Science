@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1508776375704.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1759106434",
+    "id" : "FCDD5912",
+    "lastKnownWriteTime" : 1509186900,
+    "last_content_update" : 1509186900200,
+    "path" : "~/Documents/CUNEF/Visualizacion/Practicas Vis/ProyectoClase01/server.R",
+    "project_path" : "server.R",
+    "properties" : {
+        "cursorPosition" : "17,0",
+        "scrollLine" : "0",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 5,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

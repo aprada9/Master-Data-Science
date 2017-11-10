@@ -1,0 +1,407 @@
+---
+title: "Práctica Fondos"
+author: "Álvaro de Prada"
+date: "24/10/2017"
+output:
+  pdf_document: default
+  html_document: default
+editor_options: 
+  chunk_output_type: inline
+---
+# Importación
+Importamos el dataset a través de read.csv2 que lee los csv europeos, lo cual nos es util ya que los decimales se representan con , y no con .:
+```{r}
+library(car)
+library(readr)
+ Fondos <- read.csv2(file = "Fondos.csv")
+ 
+
+```
+
+
+
+
+
+Probamos combinaciones lógicas de distintas variables que puedan predecir la rentabilidad. Creamos para ello 5 regresiones, siendo la ultima de ellas la que menos r2 tiene y que más correcta parece, por lo que seguiremos trabajando con dicho conjunto:
+#1
+```{r}
+regres01=lm(rent_1~Inv_minima_inicial	+ rent_1_mes +	rent_3_meses +	rent_6_meses +	rent_en_el_anio +	rent_3_anios +	rent_5_anios	+ rent_10_anios +	Estilo_inversion_.RF	+ Capitaliz_media_bursatil +	Patrimonio +	Morningstar_Rating +	Volatilidad_3 +	Ratio_de_informacion +	Media_3 ,data=Fondos, na.action=na.omit, singular.ok=TRUE)
+
+summary(regres01)
+```
+
+```{r}
+qqPlot(regres01, labels=row.names(Fondos), id.method="identify",
+       simulate=TRUE, main="Q-Q Plot")
+```
+#2
+```{r}
+regres02=lm(rent_1~	X1_Week_Return + rent_6_meses + rent_en_el_anio + Volatilidad_3 + Media_3	,data=Fondos, na.action=na.omit, singular.ok=TRUE)
+
+summary(regres02)
+```
+```{r}
+qqPlot(regres02, labels=row.names(Fondos), id.method="identify",
+       simulate=TRUE, main="Q-Q Plot")
+```
+#3
+```{r}
+regres03=lm(rent_1~	X1_Week_Return + X1_Week_Return:rent_6_meses + rent_6_meses + rent_en_el_anio + Volatilidad_3 + Media_3	,data=Fondos, na.action=na.omit, singular.ok=TRUE)
+
+summary(regres03)
+```
+```{r}
+qqPlot(regres03, labels=row.names(Fondos), id.method="identify",
+       simulate=TRUE, main="Q-Q Plot")
+```
+#4
+
+```{r}
+regres04=lm(rent_1~		rent_en_el_anio +	Morningstar_Rating  +	Media_3  ,data=Fondos, na.action=na.omit, singular.ok=TRUE)
+
+summary(regres04)
+```
+```{r}
+qqPlot(regres04, labels=row.names(Fondos), id.method="identify",
+       simulate=TRUE, main="Q-Q Plot")
+```
+#5
+```{r}
+regres05=lm(rent_1~ +	rent_en_el_anio +	Volatilidad_3	+ Media_3    ,data=Fondos, na.action=na.omit, singular.ok=TRUE)
+
+
+summary(regres05)
+```
+```{r}
+qqPlot(regres05, labels=row.names(Fondos), id.method="identify",
+       simulate=TRUE, main="Q-Q Plot")
+
+```
+Realizamos test outlier sobre la regres02 para limpiar datos, ya que es la que más se aproxima a nuestros objetivos.
+```{r}
+outlierTest(regres02)
+```
+Eliminamos de la tabla los datos outliers
+```{r}
+Outliers01 <-c(118,476,173,11,22)
+Fondos=Fondos[-Outliers01,]
+```
+
+
+Volvemos a ejecutar las regresiones tras haber eliminado los outliers:
+```{r}
+regres01=lm(rent_1~Inv_minima_inicial	+ rent_1_mes +	rent_3_meses +	rent_6_meses +	rent_en_el_anio +	rent_3_anios +	rent_5_anios	+ rent_10_anios +	Estilo_inversion_.RF	+ Capitaliz_media_bursatil +	Patrimonio +	Morningstar_Rating +	Volatilidad_3 +	Ratio_de_informacion +	Media_3 ,data=Fondos, na.action=na.omit, singular.ok=TRUE)
+
+summary(regres01)
+```
+
+```{r}
+qqPlot(regres01, labels=row.names(Fondos), id.method="identify",
+       simulate=TRUE, main="Q-Q Plot")
+```
+#2
+```{r}
+regres02=lm(rent_1~	X1_Week_Return + rent_6_meses + rent_en_el_anio + Volatilidad_3 + Media_3	,data=Fondos, na.action=na.omit, singular.ok=TRUE)
+
+summary(regres02)
+```
+```{r}
+qqPlot(regres02, labels=row.names(Fondos), id.method="identify",
+       simulate=TRUE, main="Q-Q Plot")
+```
+#3
+```{r}
+regres03=lm(rent_1~	X1_Week_Return + X1_Week_Return:rent_6_meses + rent_6_meses + rent_en_el_anio + Volatilidad_3 + Media_3	,data=Fondos, na.action=na.omit, singular.ok=TRUE)
+
+summary(regres03)
+```
+```{r}
+qqPlot(regres03, labels=row.names(Fondos), id.method="identify",
+       simulate=TRUE, main="Q-Q Plot")
+```
+#4
+
+```{r}
+regres04=lm(rent_1~		rent_en_el_anio +	Morningstar_Rating  +	Media_3  ,data=Fondos, na.action=na.omit, singular.ok=TRUE)
+
+summary(regres04)
+```
+```{r}
+qqPlot(regres04, labels=row.names(Fondos), id.method="identify",
+       simulate=TRUE, main="Q-Q Plot")
+```
+#5
+```{r}
+regres05=lm(rent_1~ +	rent_en_el_anio +	Volatilidad_3	+ Media_3    ,data=Fondos, na.action=na.omit, singular.ok=TRUE)
+
+
+summary(regres05)
+```
+```{r}
+qqPlot(regres05, labels=row.names(Fondos), id.method="identify",
+       simulate=TRUE, main="Q-Q Plot")
+
+```
+
+
+Tras analizar los resultados decidimos quedarnos con: regres02 y regres03
+
+
+```{r}
+residplot <- function(fit, nbreaks=10) {
+  z <- rstudent(fit)
+  hist(z, breaks=nbreaks, freq=FALSE,
+       xlab="Studentized Residual",
+       main="Distribution of Errors")
+  rug(jitter(z), col="brown")
+  curve(dnorm(x, mean=mean(z), sd=sd(z)),
+        add=TRUE, col="blue", lwd=2)
+  lines(density(z)$x , density(z)$y,
+        col="red", lwd=2, lty=2)
+  legend("topright",
+         legend = c( "Normal Curve", "Kernel Density Curve"),
+         lty=1:2, col=c("blue","red"), cex=.7)
+}
+
+residplot(regres02)
+```
+```{r}
+residplot(regres03)
+```
+```{r}
+vResid=resid(regres02)
+library(fBasics)
+jbTest(vResid)
+shapiro.test(vResid)
+```
+
+```{r}
+vResid=resid(regres03)
+library(fBasics)
+jbTest(vResid)
+shapiro.test(vResid)
+```
+Linealidad:
+```{r}
+crPlots(regres02)
+
+```
+
+
+
+
+Varianza constante
+```{r}
+ncvTest(regres02)
+```
+```{r}
+spreadLevelPlot(regres02)
+```
+```{r}
+ncvTest(regres03)
+```
+```{r}
+spreadLevelPlot(regres03)
+```
+
+Constrastacion global hipotesis
+```{r}
+library(gvlma)
+gvmodel02 <- gvlma(regres02) 
+summary(gvmodel02)
+```
+```{r}
+library(gvlma)
+gvmodel03 <- gvlma(regres03) 
+summary(gvmodel03)
+```
+
+
+Multicolinealidad
+```{r}
+vif(regres02)
+sqrt(vif(regres02)) > 2
+```
+```{r}
+vif(regres03)
+sqrt(vif(regres03)) > 2
+```
+Extremos
+```{r}
+hat.plot <- function(fit) {
+  p <- length(coefficients(fit))
+  n <- length(fitted(fit))
+  plot(hatvalues(fit), main="Index Plot of Hat Values")
+  abline(h=c(2,3)*p/n, col="red", lty=2)
+  identify(1:n, hatvalues(fit), names(hatvalues(fit)))
+}
+hat.plot(regres02)
+```
+```{r}
+hat.plot <- function(fit) {
+  p <- length(coefficients(fit))
+  n <- length(fitted(fit))
+  plot(hatvalues(fit), main="Index Plot of Hat Values")
+  abline(h=c(2,3)*p/n, col="red", lty=2)
+  identify(1:n, hatvalues(fit), names(hatvalues(fit)))
+}
+hat.plot(regres03)
+```
+
+Influencia:
+
+```{r}
+
+influencePlot(regres02, id.method="identify", main="Influence Plot", 
+              sub="Circle size is proportial to Cook's Distance" )
+```
+
+```{r}
+
+influencePlot(regres03, id.method="identify", main="Influence Plot", 
+              sub="Circle size is proportial to Cook's Distance" )
+```
+
+
+Comparamos los modelos:
+```{r}
+anova(regres02, regres03)
+
+```
+
+AIC VS BIC:
+```{r}
+AIC(regres02,regres03)
+BIC(regres02,regres03)
+```
+MEJOR MODELO SEGUN NUMERO DE REGRESORES
+```{r}
+library (leaps)
+regfit.full02=regsubsets(rent_1 ~ X1_Week_Return + rent_6_meses + rent_en_el_anio + Volatilidad_3 + Media_3,Fondos )
+reg.summary02=summary(regfit.full02)
+reg.summary02
+```
+
+```{r}
+library (leaps)
+regfit.full03=regsubsets(rent_1 ~ X1_Week_Return + X1_Week_Return:rent_6_meses + rent_6_meses + rent_en_el_anio + Volatilidad_3 + Media_3, Fondos )
+reg.summary03=summary(regfit.full03)
+reg.summary03
+```
+COMPROBAMOS CUAL ES MEJOR:
+```{r}
+reg.summary02$rss
+```
+```{r}
+reg.summary02$cp
+```
+```{r}
+reg.summary02$aic
+```
+```{r}
+reg.summary02$bic
+```
+```{R}
+regfit.full02=regsubsets(rent_1 ~ X1_Week_Return + rent_6_meses + rent_en_el_anio + Volatilidad_3 + Media_3, data=Fondos)
+reg.summary02=summary(regfit.full02)
+reg.summary02
+```
+
+```{r}
+reg.summary03$rss
+```
+```{r}
+reg.summary03$cp
+```
+```{r}
+reg.summary03$aic
+```
+```{r}
+reg.summary03$bic
+```
+```{R}
+regfit.full03=regsubsets(rent_1 ~ X1_Week_Return + X1_Week_Return:rent_6_meses + rent_6_meses + rent_en_el_anio + Volatilidad_3 + Media_3, data=Fondos)
+reg.summary03=summary(regfit.full03)
+reg.summary03
+```
+
+
+A continuación lo realizamos por etapas:
+```{r}
+library(MASS)
+
+regfit.fwd=regsubsets(rent_1 ~ X1_Week_Return + rent_6_meses + rent_en_el_anio + Volatilidad_3 + Media_3,Fondos,method ="forward")
+summary (regfit.fwd )
+```
+
+```{r}
+library(MASS)
+
+stepAIC(regres02, direction="backward")
+
+stepAIC(regres03, direction="both")
+```
+Validación cruzada:
+
+```{r}
+library(ISLR)
+set.seed(100)
+numfondos=nrow(Fondos)
+train=sample(numfondos ,numfondos/2)
+regres.train =lm(rent_1 ~ X1_Week_Return + rent_6_meses + rent_en_el_anio + Volatilidad_3 + Media_3, data=Fondos,subset =train )
+attach(Fondos)
+mean((rent_1-predict(regres.train ,Auto,na.action=na.omit))[-train ]^2)
+```
+```{r}
+regres.train2 =lm(formula = rent_1 ~ X1_Week_Return + X1_Week_Return:rent_6_meses + rent_6_meses + rent_en_el_anio + Volatilidad_3 + Media_3, data = Fondos ,subset =train )
+mean((rent_1-predict(regres.train2 ,Auto,na.action=na.omit))[-train ]^2)
+```
+PRUEBAS
+```{r}
+summary(Fondos)
+```
+
+A continuación probaremos a eliminar los NA del primer modelo (regres02) para comprobar si los resultados varían de forma significativa:
+
+```{r}
+mediavolatilidad <- mean (na.omit (Fondos $ Volatilidad_3))
+for (i in 1: length (Fondos$Volatilidad_3)) {
+if ( is.na (Fondos $ Volatilidad_3 [i]) == TRUE) {
+Fondos $ Volatilidad_3 [i] = mediavolatilidad
+}
+}
+mediamedia <- mean (na.omit (Fondos $ Media_3))
+for (i in 1: length (Fondos $ Media_3)) {
+if ( is.na (Fondos $ Media_3 [i]) == TRUE) {
+Fondos $ Media_3 [i] = mediamedia
+}
+}
+regres02=lm(formula = rent_1 ~ X1_Week_Return + X1_Week_Return:rent_6_meses + rent_6_meses + rent_en_el_anio + Volatilidad_3 + Media_3, data=Fondos, na.action=na.omit)
+summary(regres02)
+
+
+```
+```{r}
+set.seed(100)
+numfondos=nrow(Fondos)
+train=sample(numfondos ,numfondos/2)
+regres.train =lm(rent_1 ~ X1_Week_Return + X1_Week_Return:rent_6_meses + 
+    rent_6_meses + rent_en_el_anio + Volatilidad_3 + Media_3, data=Fondos,subset =train )
+attach(Fondos)
+```
+```{r}
+mean((rent_1-predict(regres.train ,Auto,na.action=na.omit))[-train ]^2)
+```
+
+
+
+Por lo tanto, como conclusión obtenemos que es importante el formateo de datos desde el inicio, teniendo en cuenta el fuerte efecto que puede tener los NA sobre los resultados. Métodos como la media o el de vecinos más cercanos pueden ser empleados para eliminar estos NA.
+
+Los resultados de este proyecto desprenden un valor 1.224641 (cuanto más cercano a 0 más efectivas serán las predicciones) habiendo empleado las variables: 
+-X1_Week_Return  
+-X1_Week_Return:rent_6_meses 
+-rent_6_meses 
+-rent_en_el_anio 
+-Volatilidad_3 
+-Media_3
+

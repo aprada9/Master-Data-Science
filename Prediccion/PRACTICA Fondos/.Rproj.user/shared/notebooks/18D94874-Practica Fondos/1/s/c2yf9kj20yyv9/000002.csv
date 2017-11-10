@@ -1,0 +1,15 @@
+"0","set.seed(100)"
+"0","numfondos=nrow(Fondos)"
+"0","train=sample(numfondos ,numfondos/2)"
+"0","regres.train =lm(rent_1 ~ X1_Week_Return + X1_Week_Return:rent_6_meses + "
+"0","    rent_6_meses + rent_en_el_anio + Volatilidad_3 + Media_3, data=Fondos,subset =train )"
+"0","attach(Fondos)"
+"2","The following objects are masked from Fondos (pos = 3):
+
+    Capitaliz_media_bursatil, Com_deposito, Com_Gestion, Com_Suscripcion, Dias_depl_reemb,
+    Estilo_inversion_.RF, Estilo_inversion_RV, Gestora, ImportFile_CustomBuyFee2, ImportFile_CustomDelayToBuy,
+    Inv_minima_inicial, ISIN, Media_3, Morningstar_Rating, Nombre, Patrimonio, Ratio_de_informacion, rent_1,
+    rent_1_mes, rent_10_anios, rent_3_anios, rent_3_meses, rent_5_anios, rent_6_meses, rent_en_el_anio,
+    Sharpe_.3, Volatilidad_3, X1_Day_Return, X1_Week_Return
+
+"

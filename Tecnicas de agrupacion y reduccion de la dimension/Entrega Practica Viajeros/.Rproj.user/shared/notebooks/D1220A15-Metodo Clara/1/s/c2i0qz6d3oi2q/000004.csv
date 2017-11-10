@@ -1,0 +1,4 @@
+"0","clusters<-viajeros.clara$clustering"
+"0","clusters<-as.data.frame(clusters)                        "
+"0","resultado<-na.omit(viajerosv5)"
+"0","resultado<-data.frame(clusters,resultado)"

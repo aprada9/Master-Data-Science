@@ -1,0 +1,103 @@
+gender <- read.csv("http://www.biz.uiowa.edu/faculty/jledolter/DataMining/GenderDiscrimination.csv")
+
+head(gender, 6) # comprobamos el encabezado de gender 
+
+## # modelo a estimar Gender~ Experience + Salary
+
+# dibujo para ver la proporcion de masculino y femenino
+plot(gender$Gender)
+table(gender$Gender)
+length(gender$Gender[gender$Gender=="Female"])
+# hay 140 female y 68 male, es decir, el 67.3% de la muestra es female
+
+
+# siembro la semilla aleatoria
+set.seed(125)
+train <- sample(nrow(gender), 0.7*nrow(gender))
+
+# creo los df para la muestra de entrenamiento y validacion
+df.train <- gender[train,]
+
+df.validate <- gender[-train,]
+
+# la volvemos a dibujar para ver si mantiene la proporcion
+ # par(mfrow=c(1,2))    #nos dibuja ambos graficos juntos para una mejor comparaci?n visual.
+
+plot(df.train$Gender)
+length(df.train$Gender[df.train$Gender=="Female"])
+
+# comprobamos q e la muestra hay 96 female y 49 male, por lo tanto hay un 66.2% de famele en la muestra de train
+
+plot(df.validate$Gender)
+length(df.validate$Gender[df.validate$Gender=="Female"])
+# tenemos un toal de 44 female y 19 male, por lo tanto hay 69.84% de female en la muestra de validacion
+
+# El resultado de tanto la muestra de entrenamiento como de validacion esta bastante bien distribuidas, trabajamos 
+# con ellas.
+
+# a continuacion vamos a defenir nuestro arbol
+library(rpart)
+
+# Estimamos el arbol
+
+arbol <- rpart(Gender ~ ., data=df.train, method="class",
+               parms=list(split="information"))
+print(arbol)
+summary(arbol)
+
+#dibujamos el arbol sin podar
+library(rpart.plot)
+prp(arbol, type=2, extra=104, fallen.leaves= TRUE, main="arbol general")
+
+#miramos el cp y escogemos el punto de corte donde tenga el menor error que en este caso es el segundo con un 
+#cp de 0.26530612
+arbol$cptable
+
+# Representamos gr?ficamente la curva cp
+
+plotcp(arbol)
+# vemos en el grafico que el minimo error esta en 0.26530612
+
+
+#podamos el arbol
+arbol.podado <- prune(arbol, cp= 0.26530612)
+
+print(arbol.podado)
+# y lo volvemos a pintar una vez podado
+prp(arbol.podado, type = 2, extra = 104,
+    fallen.leaves = TRUE, main="Arbol final")
+
+
+# prediccion con la muestra de validacion
+arbol.pred <- predict(arbol.podado, df.validate, type="class")
+
+arbol.perf <- table(df.validate$Gender, arbol.pred,
+                    dnn=c("Actual", "Predicted"))
+
+arbol.perf
+# Actual   Female Male
+# Female     41    3
+# Male       12    7
+
+#nos sale un total de 15 fallos sobre la muestra de 63, es decir tiene 76.2% de acierto.
+
+#vamos a comparar que hubiera pasasdo di no lo podamos:
+arbol.pred1 <- predict(arbol, df.validate, type="class")
+
+arbol.perf1 <- table(df.validate$Gender, arbol.pred1,
+                    dnn=c("Actual", "Predicted"))
+
+arbol.perf1
+
+# Actual   Female Male
+# Female     41    3
+# Male       12    7
+# En conclusion vemos que nuestro arbol podado sale igual que sino lo podamos, es decir, hemos ahorrado en complejidad
+
+#lo representamos en un grafico diferente.
+library(partykit)
+
+plot(as.party(arbol.podado))
+
+
+###CONCLUSIONES

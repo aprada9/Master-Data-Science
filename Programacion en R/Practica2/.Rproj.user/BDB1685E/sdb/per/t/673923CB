@@ -1,0 +1,20 @@
+{
+    "collab_server" : "",
+    "contents" : "library(readr)\nbici_disponibilidad20170920 <- read_csv(\"~/Documents/CUNEF/Programacion en R/RSTUDIO/Proyectos/Practica Datasets/Practica Datasets/bici_disponibilidad20170920.csv\")\nView(bici_disponibilidad20170920)\nlibrary(readr)\ndataset <- read_csv(NULL)\nView(dataset)\nlibrary(readr)\ndataset <- read_csv(\"~/Documents/CUNEF/Programacion en R/RSTUDIO/Proyectos/Practica Datasets/Practica Datasets/female_names.csv\")\nView(dataset)\nView(dataset)\nView(bici_disponibilidad20170920)\nlibrary(readr)\ndataset <- read_delim(\"~/Documents/CUNEF/Programacion en R/RSTUDIO/Proyectos/Practica Datasets/Practica Datasets/bici_disponibilidad20170920.csv\",\n\";\", escape_double = FALSE, trim_ws = TRUE)\nView(dataset)\nView(bici_disponibilidad20170920)\nView(dataset)\nView(bici_disponibilidad20170920)\nView(bici_disponibilidad20170920)\nView(dataset)\nlibrary(readr)\nbici_disponibilidad <- read_delim(\"~/Documents/CUNEF/Programacion en R/RSTUDIO/Proyectos/Practica Datasets/Practica Datasets/bici_disponibilidad20170920.csv\",\n\";\", escape_double = FALSE, trim_ws = TRUE)\nView(bici_disponibilidad)\nView(bici_disponibilidad)\nView(bici_disponibilidad20170920)\nView(bici_disponibilidad20170920)\nView(bici_disponibilidad)\nView(dataset)\nlibrary(readr)\nfemale_names <- read_csv(\"~/Documents/CUNEF/Programacion en R/RSTUDIO/Proyectos/Practica Datasets/Practica Datasets/female_names.csv\")\nView(female_names)\nView(female_names)\nView(dataset)\nView(female_names)\nView(dataset)\nView(female_names)\nView(dataset)\nView(dataset)\nView(dataset)\nlibrary(readr)\ndatosbip4cast <- read_csv(\"~/Documents/CUNEF/Programacion en R/RSTUDIO/Proyectos/Practica Datasets/Practica Datasets/datosbip4cast.txt\")\nView(datosbip4cast)\nlibrary(readr)\ndatosbip4cast <- read_csv(\"~/Documents/CUNEF/Programacion en R/RSTUDIO/Proyectos/Practica Datasets/Practica Datasets/datosbip4cast.txt\",\ncol_names = FALSE)\nView(datosbip4cast)\nrm(bici_disponibilidad20170920)\nView(bici_disponibilidad)\nView(dataset)\nrm(dataset)\nView(datosbip4cast)\nView(female_names)\nView(bici_disponibilidad)\nView(bici_disponibilidad)\nView(datosbip4cast)\nView(female_names)\nmax(n$Year)\nView(bici_disponibilidad)\nView(bici_disponibilidad)\nView(datosbip4cast)\nView(female_names)\nView(bici_disponibilidad)\nView(female_names)\nView(female_names)\nView(datosbip4cast)\nView(bici_disponibilidad)\nView(female_names)\nlibrary(readr)\nfemale_names <- read_csv(\"~/Documents/CUNEF/Programacion en R/RSTUDIO/Proyectos/Practica Datasets/Practica Datasets/female_names.csv\")\nView(female_names)\nView(female_names)\nmax(n$Year)\nmax($Year)\nfemale_names\nmax(n$Year)\nstr(female_names)\nhead(female_names)\nstr(female_names)\ndim(female_names)\nmax(female_names$Year)\nfemale_names.2010<-female_names(female_names$Year==2010)\nmax(female_names$Year)\ndim(max(female_names$Year))\nfemale_names.2010<-female_names(female_names$Year==2010)\nfemale_names.2010<-female_names[female_names$Year==2010]\nfemale_names.2010<-female_names[female_names$Year==2010,]\nfemale_namesrow(female_names.2010)\nfemale_names.row(female_names.2010)\ndim(female_names.2010)\nnrow(female_names.2010)\nmax(female_names$Name)\nfemale_names.2010<-female_names.2010[,c(\"Name\", \"Frequency\")]\nhead(female_names.2010,2)\nView(female_names.2010)\nfemale_names.2010.s <-female_names.2010[order(female_names.2010$Frequency, decreasing = TRUE),]\nhead(as.character(female_names.2010.s$Name),5)\nhead(female_names.2010.s)\nsave.image(\"~/Documents/CUNEF/Programacion en R/RSTUDIO/Proyectos/Practica Datasets/Practica Datasets/Practica Datasets.RData\")\n",
+    "created" : 1506447608106.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2151214374",
+    "id" : "673923CB",
+    "lastKnownWriteTime" : 1506359814,
+    "last_content_update" : 1506359814,
+    "path" : "~/Documents/CUNEF/Programacion en R/RSTUDIO/Proyectos/Practica Datasets/Practica Datasets/.Rhistory",
+    "project_path" : null,
+    "properties" : {
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_history"
+}

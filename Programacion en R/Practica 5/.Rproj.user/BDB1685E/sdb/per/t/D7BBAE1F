@@ -1,0 +1,21 @@
+{
+    "collab_server" : "",
+    "contents" : "# Ejercicio 1. Búsqueda y Selección.\n#Cargar los datos de “student_census.csv” del repositorio haciendo uso de read.csv. Para una celebración\n#deportiva en el campus, se quiere saber si es posible formar un equipo de 5 estudiantes que jueguen al\n#Baloncesto. Para ello se pide localizar a todos los estudiantes que practiquen dicho deporte y de ellos\n#seleccionar 5 mediante una selección aleatoria. Para seleccionarlos se implementará una función que genera\n#números aleatorios uno a uno en el rango adecuado, si el estudiante aún no forma parte del equipo se integrará\n#y si ya está se generará otro número aleatorio hasta que estén seleccionados los cinco. \n\n\nlibrary(readr)\nstudent_census <- read_csv('student_census.csv')\n\nBaloncesto <- subset(student_census, Physical == \"Basketball\" )\n\n\n# Ejercicio 2. Ordenación y Regresión.\n#Con los datos de “student_census.csv” del ejercicio anterior, se pide filtrar en un data.frame las variables Height,\n#Arm.Span, Foot.Size y realizar correlaciones dos a dos. Ordenar los datos de acuerdo con la estatura para\n#determinar la procedencia de los alumnos más altos y hacer un diagrama de barras que indique los resultados\n#por provincias. \n\n\npeso<-student_census$Height[1:200]\naltura<-student_census$Arm.Span[1:200]\npie<-student_census$Foot.Size[1:200]\ntabla<-data.frame(peso,altura,pie)\n\ncorrelaciones<-cor(tabla)\ncorrelaciones\n\n#creamos un gráfico de barras con barplot\n\nprovincia<-student_census$Province[1:200]\ntabla2<-data.frame(peso,altura,pie,provincia)\n\n#metodo 1:\nbarplot(prop.table(table(student_census$Province)))\n\n#metodo 2:\nbarplot(prop.table(table(tabla2$provincia)))\n\ncorrelaciones<-cor(tabla)\ncorrelaciones\n\n\n#creamos tres vectores y un nuevo objeto definido por nuestros tres vectores denominada ii lo ordeamos por la funcion\n#order poniendo como primer elemento aquel que queremos que ordene el objeto.\ntoe<-c(pie)\ntall<-c(altura)\nheight<-c(peso)\nii<-order(tall,height,toe)\nrbind(height,tall,toe)[,ii]\ncbind(tall,height,toe)[ii, ]\n\n\n\n\n\n## EJERCICIO 3\n\n#se divide el data.frame en 20 listas diferentes aleatoriamente con la funcion sample\nl<-split(student_census, sample(rep(1:20,10,replace=F)))\nl[[1]]\nl1<-order(listas[[1]]$Height)\nl[[1]]<-l[[1]][with(l[[1]],order(l[[1]]$Height) ),]\nfor (i in 1:20){\n  l[[i]]<-l[[i]][with(l[[i]],order(l[[i]]$Height) ),]\n}\n\n#definimos una función para agrupar\nagrupar<-function(df1,df2){\n  union<-rbind(df1,df2)\n}\n\n\n\ndatos<-student_census\ncs<-1:200\nfor(i in(1:20)){\n  for(j in ((10*(i-1)+1):10*i)){c[j]<-i}\n}\nfor(i in(1:20)) {filtrar  }\n\n\n##EJERCICIO 5 \n\nx<- c(1:80, 78:34, 1,2,3,4,5,6,7,5,4,3,2)\nn<-5\ndivideenBloques <- function( x, n ){\n\t\t\ttam<-length(x)%/%n\n\t\t\tlist<-NULL\n\t\t\t\n\t\t\tfor (i in 0:(n-2)){\n\t\t\t\t\tlist<-c(list,c(i*tam+1, (i+1)*tam))\n\t\t\t\t\t\n\t\t\t\t\t\t\t}\n\t\t\tlist<-c(list,c(((i+1)*tam)+1, length(x)))\n\t\t\treturn(list)\n}\nlista<-divideenBloques(x,n)\n\n########################\ni<-1\npares_sumas<-function (lista, x, n){\n sumas<-NULL\n tams<-NULL\n for (i in 0:(n-1)){\n\t\tini<-lista[i*2+1]\n\t\tfin<-lista[i*2+2]\n\t\tsumas<-c(sumas, sum(x[ini:fin]))\n\t\ttams<-c(tams,fin-ini+1)\n\t\t}\nreturn(data.frame(sumas, tams))\n}\nps<-pares_sumas(lista, x, n)\n\nreduce<-function(ps){\nresultado<- as.double(sum(ps$sumas)/sum(ps$tams))\nreturn(resultado)\n}\nresultado_media<-reduce(ps)\n\n\t\t\n##EJERCICIO 6\n\nbusca <- function (l, h, st){\n  if (l<=st) {if (sum(l:h) ==st) {print(c(l, h))\n    return(busca(l+1,l+1,st))}\n    else {if (sum(l:h)<st) return(busca(l, h+1, st))\n      else return(busca(l+1, l+1, st))}\n  }\n}\nbusca(0,100, 100) \n\n",
+    "created" : 1508151384227.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3784800247",
+    "id" : "D7BBAE1F",
+    "lastKnownWriteTime" : 1508174933,
+    "last_content_update" : 1508174936994,
+    "path" : "~/Documents/CUNEF/Programacion en R/RSTUDIO/Proyectos/Practica 5/Practica5.R",
+    "project_path" : "Practica5.R",
+    "properties" : {
+        "docOutlineVisible" : "0"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

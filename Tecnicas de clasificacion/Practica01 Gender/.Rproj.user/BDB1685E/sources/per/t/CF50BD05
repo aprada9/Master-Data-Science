@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1509463726582.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2868745657",
+    "id" : "CF50BD05",
+    "lastKnownWriteTime" : 1509481645,
+    "last_content_update" : 1509481645446,
+    "path" : "~/Documents/CUNEF/Tecnicas de clasificación/Practicas a entregar/Practica01 Gender/practica01.Rmd",
+    "project_path" : null,
+    "properties" : {
+        "chunk_output_type" : "inline",
+        "cursorPosition" : "8,0",
+        "scrollLine" : "0"
+    },
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

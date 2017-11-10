@@ -1,0 +1,5 @@
+"0","require(cluster) # para los algoritmos PAM y CLARA "
+"0","require(fpc) # idem"
+"0","require(factoextra) # para visualizar"
+"0","library(readr)"
+"0","require(NbClust)"

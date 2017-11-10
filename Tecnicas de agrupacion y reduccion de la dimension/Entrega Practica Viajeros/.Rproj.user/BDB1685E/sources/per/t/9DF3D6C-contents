@@ -1,0 +1,118 @@
+require(cluster) # para los algoritmos PAM y CLARA 
+require(fpc) # idem
+require(factoextra) # para visualizar
+
+library(readr)
+viajerosv1 <- read.csv("viajeros.csv", stringsAsFactors=F)
+# Nos avisa de que la primera columna no tiene nombre y que la rellena llamandolo X1. No hay problema.
+
+# A continuación hacemos que la primera coumna se convierta en el nombre de cada fila:
+viajerosv1 = data.frame(viajerosv1[,-1], row.names=viajerosv1[,1])
+
+# Comprobamos si existen valores perdidos:
+
+viajerosv1.compl =  complete.cases(viajerosv1)
+head(viajerosv1.compl)
+
+# y hemos comprobado que si que hay valores perdidos. Me da igual pq tampoco se que hacer con ellos asique me los cargo.
+
+
+#Me cargo los na y se queda en menos de un 10% de observaciones que la original:
+
+viajerosv2 = na.omit(viajerosv1)
+head(viajerosv2)
+
+myDataFrame[, 4]  <- as.numeric(myDataFrame[, 4])
+
+# El apply aplica sobre la totalidad de la matriz, 2= columnas 1= filas
+# Nos quedamos con las variables de la 3 a la 31 porque son las numericas.
+q_stats <- data.frame(
+  Min = apply(viajerosv2[3:31], 2, min), # mínimo
+  Med = apply(viajerosv2[3:31], 2, median), # mediana
+  Mean = apply(viajerosv2[3:31], 2, mean), # media
+  SD = apply(viajerosv2[3:31], 2, sd), # Desviación típica 
+  Max = apply(viajerosv2[3:31], 2, max) # Máximo
+)
+q_stats <- round(q_stats, 1) 
+head(q_stats)
+
+# Vemos que no esta todo en la misma escala, probamos a ejecutar > viajerosv2 = scale(viajerosv1)  
+# Pero nos avisa que no todo es numerico, asique lo pasamos todo a numerico:
+
+
+# Convertimos en numericos los valores:
+
+## Metodo de apuntees:
+
+performScaling= T # on/off para experimentar 
+if (performScaling) {
+  # Loop sobre cada columna
+  for (colName in names(viajerosv2)) {
+    # Comprueba si la columna es de datos numéricos.
+    if (class(viajerosv2[, colName]) == 'integer' |  class(viajerosv2[, colName]) == 'numeric') {
+      # escala la columna.
+      viajerosv2[,colName] = scale(viajerosv2[,colName])
+      
+    }
+  }
+}
+  
+
+# Ya se han convertido a numeric, repetimos el pruces:
+
+q_stats <- data.frame(
+  Min = apply(viajerosv2[3:31], 2, min), # mínimo
+  Med = apply(viajerosv2[3:31], 2, median), # mediana
+  Mean = apply(viajerosv2[3:31], 2, mean), # media
+  SD = apply(viajerosv2[3:31], 2, sd), # Desviación típica 
+  Max = apply(viajerosv2[3:31], 2, max) # Máximo
+)
+q_stats <- round(q_stats, 1) 
+head(q_stats)
+
+#Confirmamos que ya están en la misma escala porque el SD = 1 en todas. 
+
+
+#q.dist = get_dist(viajerosv2[3:5], stand = TRUE, method = "pearson")
+#str(q.dist)
+
+#fviz_dist(q.dist, lab_size = 5)
+
+# Nos quedamos con viajerosv3 con columnas solo numericas sin NAs
+viajerosv3 <- viajerosv2[3:31]
+
+# Si las variables presentan fuertes variaciones de rango o una alta variabilidad, conviene tipificarlas; 
+
+set.seed(123) # para poder reproducir 
+km.q = kmeans(viajerosv3, 3, nstart = 25)
+
+# Grupo de pertenencia
+km.q$cluster
+
+
+# Tamaño de cada grupo
+km.q$size
+
+# Hacemos una tabla para conocer a qué grupo pertenece cada uno:
+tab = table(rownames(viajerosv3), km.q$cluster) # para 
+head(tab)
+
+# Obtenemos los centroides de cada grupo
+km.q$centers
+km.q$centers[2,]  #Centroides del grupo 2
+
+
+plot(viajerosv3[,c(1,8)],col=km.q$cluster, pch = 19, frame = FALSE, main = "k?")
+#Agregamos los centroides
+points(km.q$centers[,c(1,8)], col = 1:3, pch = 16, cex = 2)
+
+
+library(ggrepel)
+fviz_cluster(km.q, data=viajerosv3, labelsize=3, repel=TRUE)
+
+
+
+plot(viajerosv3) # display dendogram
+groups <- cutree(viajerosv3, k=3) # cut tree into 5 clusters
+# draw dendogram with red borders around the 5 clusters
+rect.hclust(viajerosv2, k=3, border="red") 

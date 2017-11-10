@@ -1,0 +1,243 @@
+---
+title: "Clusterización de viajeros empleando el algoritmo CLARA"
+author: "Álvaro de Prada"
+date: "9/11/2017"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+
+En primer lugar cargamos todos los paquetes que vamos a emplear en la práctica:
+```{r}
+require(cluster) # para los algoritmos PAM y CLARA 
+require(fpc) # idem
+require(factoextra) # para visualizar
+library(readr)
+require(NbClust)
+```
+
+Emplearemos a continuación el Método Clara:
+
+Empezamos cargando los datos:
+```{r}
+viajerosv5 <- read.csv("viajeros.csv")
+```
+Nos deshacemos de los valores perdidos:
+```{r}
+naviajeros <- na.omit(viajerosv5)
+```
+Y nos quedamos con las variables numéricas:
+```{r}
+naviajeros <- naviajeros[,4:31]
+```
+Y comprobamos los distintos valores de cada variable:
+```{r}
+summary(naviajeros)
+```
+
+Necesitaremos reducir el tamaño de los datos para poder ejecutar más adelante ciertas funciones que requieren bastante poder computacional. Por ello escogemos una muestra de 500 observaciones:
+```{r}
+set.seed(123)
+naviajeros.mas = naviajeros[sample(1:nrow(naviajeros), 500, replace=FALSE),] 
+```
+
+Y tipificamos para poder trabajar con variables con medidas equitativas/comparables:
+```{r}
+naviajeros.tip = scale(naviajeros.mas)
+summary(naviajeros.tip)
+```
+
+Ejecutamos la función NbClus:
+```{r}
+Nb.viajeros=NbClust(naviajeros.tip, distance = "euclidean", min.nc = 2, max.nc = 10, method = "complete", index ="all")
+```
+```{r}
+fviz_nbclust(Nb.viajeros) + theme_minimal() + labs(x="Número k de clusters", y="Frecuencia")
+```
+Por lo tanto la opción mayoritaria señala 2 grupos de CLUSTERS, por lo que procedemos a representar gráficamente estos 2 clusters:
+```{r}
+require(cluster)
+viajeros.clara=clara(naviajeros, 2, samples=200)
+```
+```{r}
+require(factoextra)
+fviz_cluster(viajeros.clara, stand = TRUE, geom = "point", pointsize = 1)
+```
+
+Podemos comprobar como existe una clara segementación de 2 grupos bastante heterogéneos, a pesar de que existeuna pequeña zona de convergencia entre los grupos.
+```{r}
+plot(silhouette(viajeros.clara),col = 2:3, main = "Gráfico de perfil")
+```
+
+Obtenemos los medioides:
+```{r}
+viajeros.clara$medoids
+```
+
+Tras haber clusterizado a los viajeros, creamos una tabla en la que se indique en qué cluster se ha introducido a cada viajero para poder ver si tienen características comunes como por ejemplo ingresos, edad...:
+```{r}
+clusters<-viajeros.clara$clustering
+clusters<-as.data.frame(clusters)                        
+resultado<-na.omit(viajerosv5)
+resultado<-data.frame(clusters,resultado)
+```
+
+```{r}
+head(resultado)
+```
+
+A continuaciñon representaremos gráficamente las distribuciones de las variables nominales en cada cluster, para poder estimar el tipo de viajero (pais de origen, ingresos, edad...) del que se compone cada cluster:
+
+```{r}
+table(resultado$clusters, resultado$PAIS_RESID_AGRUP)
+```
+```{r}
+ggplot(aes(x = clusters, y = PAIS_RESID_AGRUP), data = resultado, colour = 'red') +
+   geom_point(size = 4, alpha=0.3 , position="jitter",  colour = 'dark blue')
+```
+En este gráfico podemos ver que en los datos obtenidos, la procedencia mayoritaria en ambos clusters son de UK y Otros, pero no podemos confirmar a simple vista que exista una diferenciación de clusters en función del pais de procedencia.
+
+```{r}
+table(resultado$clusters, resultado$INGRESOS)
+```
+```{r}
+ggplot(aes(x = clusters, y = INGRESOS), data = resultado) +
+   geom_point(size = 4, alpha=0.2 , position="jitter",  colour = 'dark blue')
+```
+En el caso de los ingresos sucede algo similar. La mayor parte de los viajeros se encuentra en rangos salariales entre 12.000-36.000 y 72.001-84.000, pero no se aprecia segmentación entre clusters.
+
+```{r}
+table(resultado$clusters, resultado$IMPRESION)
+```
+```{r}
+ggplot(aes(x = clusters, y = IMPRESION), data = resultado) +
+   geom_point(size = 4, alpha=0.2 , position="jitter",  colour = 'dark blue')
+```
+En la categoría de impresión, si hemos comprobado que existe una segmentación entre clusters, en la que podemos ver que en el cluster 1 hay una tendencia a dar una impresión de nota 4 y en el cluster dos, la nota que predomina es el 5.
+
+```{r}
+table(resultado$EDAD, resultado$clusters)
+```
+```{r}
+ggplot(aes(x = clusters, y = EDAD), data = resultado) +
+   geom_point(size = 4, alpha=0.2 , position="jitter",  colour = 'dark blue')
+```
+En el caso de la edad sucede algo similar que con el sueldo y la procedencia, no se puede definir una clara segmentación.
+
+```{r}
+table(resultado$clusters, resultado$OCUPACION)
+```
+```{r}
+ggplot(aes(x = clusters, y = OCUPACION), data = resultado) +
+   geom_point(size = 4, alpha=0.15 , position="jitter",  colour = 'dark blue')
+```
+En el caso de la ocupación sucede algo similar que con el sueldo y la procedencia, no se puede definir una clara segmentación.
+
+```{r}
+table(resultado$clusters, resultado$ALOJ_CATEG_1) 
+```
+```{r}
+ggplot(aes(x = clusters, y = ALOJ_CATEG_1), data = resultado) +
+   geom_point(size = 4, alpha=0.09 , position="jitter",  colour = 'dark blue')
+```
+En el caso de la categoría de alojamiento podemos decir que 
+
+```{r}
+table(resultado$clusters, resultado$SEXO)
+```
+```{r}
+ggplot(aes(x = clusters, y = SEXO), data = resultado) +
+   geom_point(size = 4, alpha=0.35 , position="jitter",  colour = 'dark blue')
+```
+En el caso del sexo, podríamos decir que en el cluster 1 hay unmayor numero de hombres que en el cluster 2.
+
+
+Por último vamos a comprobar si existe una segmentación entre VALORACIONES en cada cluster:
+
+```{r}
+ggplot(aes(x = clusters, y = VALORACION_TRATO_ALOJ), data = resultado) +
+   geom_point(size = 4, alpha=0.2 , position="jitter",  colour = 'dark blue')
+```
+En el CLUSTER 2 valoran más el trato del alojamiento que en el CLUSTER 1.
+
+
+```{r}
+ggplot(aes(x = clusters, y = VALORACION_ALOJ), data = resultado) +
+   geom_point(size = 4, alpha=0.2 , position="jitter",  colour = 'dark blue')
+```
+En el CLUSTER 1 valoran más el Alojamiento que en el CLUSTER 2.
+
+
+
+
+```{r}
+ggplot(aes(x = clusters, y = VALORACION_GASTRONO_ALOJ), data = resultado) +
+   geom_point(size = 4, alpha=0.2 , position="jitter",  colour = 'dark blue')
+```
+En el CLUSTER 2 valoran más la GASTRONOMÍA DEL ALOJAMIENTO que en el CLUSTER 1.
+
+
+
+```{r}
+ggplot(aes(x = clusters, y = VALORACION_LIMPIEZA), data = resultado) +
+   geom_point(size = 4, alpha=0.2 , position="jitter",  colour = 'dark blue')
+```
+En el CLUSTER 1 valoran más LA LIMPIEZA que en el CLUSTER 2.
+
+
+
+```{r}
+ggplot(aes(x = clusters, y = VALORACION_OFERTA_GASTR_LOC), data = resultado) +
+   geom_point(size = 4, alpha=0.2 , position="jitter",  colour = 'dark blue')
+```
+En el CLUSTER 2 valoran más LA OFERTA GASTRONÓMICA LOCAL que en el CLUSTER 1.
+
+
+
+
+```{r}
+ggplot(aes(x = clusters, y = VALORACION_PRECIO_RESTAUR), data = resultado) +
+   geom_point(size = 4, alpha=0.2 , position="jitter",  colour = 'dark blue')
+```
+En el CLUSTER 2 valoran más EL PRECIO DE LOS RESTAURANTES que en el CLUSTER 1.
+
+
+
+
+```{r}
+ggplot(aes(x = clusters, y = VALORACION_AMBIENTE_NOCTURNO), data = resultado) +
+   geom_point(size = 4, alpha=0.2 , position="jitter",  colour = 'dark blue')
+```
+En el CLUSTER 2 valoran más el AMBIENTE NOCTURNO que en el CLUSTER 1.
+
+
+
+
+```{r}
+ggplot(aes(x = clusters, y = VALORACION_EXCURSIONES), data = resultado) +
+   geom_point(size = 4, alpha=0.2 , position="jitter",  colour = 'dark blue')
+```
+En el CLUSTER 2 valoran más LAS EXCURSIONES que en el CLUSTER 1.
+
+
+CONCLUSIÓN FINAL:
+
+Por lo tanto a la vista de los resultados expresados anteriormente podemos decir lo siguiente:
+ - No existen dos perfiles demográficos claramente definidos y segmentados, pero podemos decir que demográficamente hay dos grupos que se diferencias PRINCIPALMENTE por las siguientes características: 
+      · CLUSTER 1: En este cluster predominan los hombres y las impresiones generales suelen ser más elevadas que en el CLUSTER 2.
+      · CLUSTER 2: En este cluster no podemos decir que predominen las mujeres, ya que es un cluster bastante equilibrado en cuanto a                         proporción de sexos, pero si podemos decir que la impresión media tiende a ser inferior en comparación con e cluster 1.
+      
+- Dentro de cada cluster hemos escogido una serie de variables para comprobar si existe una segmentación de opiniones entre clusters, comprobando positivamente que es así:
+      · A diferencia del CLUSTER 1, en el CLUSTER 2 se valoran más los siguientes aspectos: TRATO ALOJAMIENTO, ALOJAMIENTO, GASTRONOMIA ALOJAMIENTO, LIMPIEZA, GASTRONOMIA LOCAL, PRECIOS RESTAURANTES, AMBIENTE NOCTURNO y EXCURSIONES.
+      
+      
+Por lo tanto concluimos el informe explicando que a la vista del análisis, el cluster 1 (formado por una mayoría de hombres) tiende a dar mejores puntuaciones a los alojamientos, y tiende a ser menos exigente según se ha visto en sus valoraciones de diferentes características en comparación con el cluster 2.  
+
+
+
+
+
+
+
+

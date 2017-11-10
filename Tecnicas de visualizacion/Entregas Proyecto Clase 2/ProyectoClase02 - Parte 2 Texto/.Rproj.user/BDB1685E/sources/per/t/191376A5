@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1509376431458.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1907753791",
+    "id" : "191376A5",
+    "lastKnownWriteTime" : 1509796175,
+    "last_content_update" : 1509796175849,
+    "path" : "~/Documents/CUNEF/Visualizacion/Practicas Vis/Entregas Proyecto Clase 2/ProyectoClase02 - Parte 2 Texto/server.R",
+    "project_path" : "server.R",
+    "properties" : {
+        "cursorPosition" : "15,6",
+        "scrollLine" : "0",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

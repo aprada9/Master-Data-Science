@@ -1,0 +1,10 @@
+"0","hat.plot <- function(fit) {"
+"0","  p <- length(coefficients(fit))"
+"0","  n <- length(fitted(fit))"
+"0","  plot(hatvalues(fit), main=""Index Plot of Hat Values"")"
+"0","  abline(h=c(2,3)*p/n, col=""red"", lty=2)"
+"0","  identify(1:n, hatvalues(fit), names(hatvalues(fit)))"
+"0","}"
+"0","hat.plot(regres03)"
+"1","integer(0)
+"

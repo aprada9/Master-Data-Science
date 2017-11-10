@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1508154839838.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "37906F20",
+    "lastKnownWriteTime" : 4294967297,
+    "last_content_update" : 1508154839838,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "2F531683",
+        "caption" : "student_census",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=student_census&cache_key=2F531683",
+        "displayedObservations" : "200",
+        "environment" : "",
+        "object" : "student_census",
+        "preview" : "0",
+        "totalObservations" : "200",
+        "variables" : "42"
+    },
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

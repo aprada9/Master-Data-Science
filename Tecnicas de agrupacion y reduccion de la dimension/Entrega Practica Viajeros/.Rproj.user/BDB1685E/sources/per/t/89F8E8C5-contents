@@ -1,0 +1,79 @@
+require(cluster) # para los algoritmos PAM y CLARA 
+require(fpc) # idem
+require(factoextra) # para visualizar
+library(readr)
+
+
+viajerosv5 <- read.csv("viajeros.csv")
+dim(viajerosv5)
+
+# creando un data.matrix hacemos que las columnas que tienen palabras o frases se conviertan en valores. 
+# Por ejemplo sexo = hombre se convierte en 2
+
+dfviajeros <- data.matrix(viajerosv5)
+
+# Como hay filas en las que no hay valor, se carga como NA, y con na.omit nos los cargamos.
+dfviajeros <- na.omit(dfviajeros)
+
+
+# Tipificamos para que todos tengan la misma escala
+
+dfviajerosnorm <- scale(dfviajeros)
+View(dfviajerosnorm)
+
+# Y generamos los estadisticos de posición y dispersión habituales, empleando de momento las 7 primeras variables:
+
+viajeros_stats = data.frame(
+  Min = apply(dfviajerosnorm[,1:18], 2, min), # mínimo
+  Med = apply(dfviajerosnorm[,1:18], 2, median), # mediana
+  Mean = apply(dfviajerosnorm[,1:18], 2, mean), # media
+  SD = apply(dfviajerosnorm[,1:18], 2, sd), # desviación típica
+  Max = apply(dfviajerosnorm[,1:18], 2, max) # máximo
+)
+
+viajeros_stats = round(viajeros_stats, 1) 
+head(viajeros_stats)
+
+
+#Empleamos dist() con métrica euclídea para generar la matriz de disimilaridades:
+dfviajerosnorm <- as.data.frame(dfviajerosnorm)
+d = dist(dfviajerosnorm, method = "euclidean")
+
+#Aplicamos el método de Ward para llevar a cabo la segmentación:
+viajeros.hc = hclust(d, method = "ward.D2" )
+
+# Representamos ahora el dendrograma, y rodeamos los grupos creados con un rectángulo de color:
+
+plot(viajeros.hc, cex = 0.6, hang = -1, main="Dendrograma - hclust") 
+rect.hclust(viajeros.hc, k=3, border = 2:4)
+
+
+#Dividimos en tres grupos a la vista del grafo anterior:
+grp = cutree(viajeros.hc, k = 3)
+
+# Y observamos el número de elementos de cada segmento:
+table(grp)
+
+
+# Finalmente visualizamos los grupos con factoextra:
+library(factoextra)
+fviz_cluster(list(data = dfviajerosnorm, cluster = grp), stand = FALSE, geom = "point", pointsize = 1, title="Clusters generados - hclust")
+
+
+# A partir de aquí empezamos el proceso kmeans del último tema:
+
+set.seed(123) # para poder reproducir 
+km.q = kmeans(dfviajerosnorm, 3, nstart = 25)
+
+km.q$cluster
+
+
+gower_dist <- daisy(viajerosv5[, -1],
+                    metric = "gower",
+                    type = list(logratio = 3))
+
+
+
+
+
+

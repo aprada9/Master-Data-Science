@@ -1,0 +1,123 @@
+##PRACTICA 1 
+
+#####TECNICAS DE CLASIFICACION
+
+setwd("Users/alvarodeprada/Documents/CUNEF/Tecnicas de clasificación/Practicas a entregar/Practica01 Gender")
+gender <- read.csv("http://www.biz.uiowa.edu/faculty/jledolter/DataMining/GenderDiscrimination.csv")
+head(gender, 6) # comprobamos el encabezado de gender 
+## # modelo a estimar Gender~ Experience + Salary
+
+View(gender)
+
+#Instalacion de los paquetes necesarios para el an?lisis:
+
+#install.packages("rpart")
+library(rpart)
+#install.packages("rpart.plot")
+library(rpart.plot)
+#install.packages("partykit")
+library(partykit)
+
+# los datos estan organizados porla variable gender (1? female 2? male), por lo que hace falta coger
+#una muestra con set seed previo
+set.seed(1379)
+
+nrow(gender)
+
+# Definimos una muestra aleatoria de aprendizaje del arbol
+#no usamos toda la poblacion para no sobrecargar el arbol
+
+train <- sample(nrow(gender), 0.7*nrow(gender))
+#esto me selecciona al azar el 70% de la muestra
+
+#Data frame para la muestra de aprendizaje y para la muestra de validacion
+
+gender.train <- gender[train,]   #con los elementos de la muestra que acabo de crear
+gender.validate <- gender[-train,]  #con los elementos restantes
+
+gender.train
+gender.validate
+
+
+table(gender.train$Gender) #93 mujeres y 52 hombres
+table(gender.validate$Gender) #47 mujeres y 16 hombres
+#le estamos diciendome "calculame una dis. de frecuencias para la variable Gender en 
+#la muestra train y en la de validacion
+
+
+# Estimamos el arbol - comenzamos a utilizar libreria rpart
+
+arbol <- rpart(Gender ~ ., data=gender.train, method="class",
+               parms=list(split="information"))
+
+print(arbol) #esta info sera mas completa con la representacion gr?fica
+summary(arbol)
+
+#ahora tenemos que podar el arbol. Para ellos nos guiaremos con la tabla de complejidad parametrica.
+#Cogemos el xerror mas peque?o y le hacemos +/- la desv tipica. Si hay algun xerror mas peque?o que lo que 
+#nos salga, subo un nivel. 
+
+arbol$cptable
+
+# Representamos graficamente la curva cp
+
+plotcp(arbol)
+
+#Utilizamos la libreria rpart.plot para representar graficamente el arbol
+prp(arbol, type = 2, extra = 104,
+    fallen.leaves = TRUE, main="Decision Tree")
+
+# Podamos el arbol a partir del parametro de complejidad. 0.875+0.1137>0.91666 por lo que podamos el ultimo split
+
+arbol.podado <- prune(arbol, cp=0.01923077)
+
+#Utilizamos la libreria rpart.plot para representar graficamente el arbol
+
+prp(arbol.podado, type = 2, extra = 104,
+    fallen.leaves = TRUE, main="Decision Tree Podado")
+
+arbol.podado$cptable
+
+arbol.podado2 <- prune(arbol.podado, cp=0.09615385)
+
+prp(arbol.podado2, type = 2, extra = 104,
+    fallen.leaves = TRUE, main="Decision Tree Podado2")
+
+#prp para ver las distintas opciones de la representaci?n gr?fica del arbol
+#type=2 explicita la etiquetas de divisi?n debajo de cada nodo
+#extra=104 incluye las probabilidades de cada clase junto con el porcentaje de casos en cada nodo
+#fallen.leaves=TRUE dibuja los nodos terminales en la parte inferior del arbol
+
+
+# Prediccion con la muestra de validaci?n
+
+arbol.pred <- predict(arbol.podado2, gender.validate, type="class")
+
+arbol.perf <- table(gender.validate$Gender, arbol.pred,
+                    dnn=c("Actual", "Predicted"))
+
+arbol.perf
+
+#Utilizamos la libreria partykit para graficar:
+
+plot(as.party(arbol.podado2))
+
+# ARBOLES BASADOS EN LA INFERENCIA. CONDITIONAL INFERENCE TREE
+fit.ctree <- ctree(Gender~ Experience + Salary, data=gender.train)
+
+plot(fit.ctree, main="Conditional Inference Tree")
+
+#lo que cuenta es la pureza de los nodos. Deben ser mayoritariamente blancos, o negros.
+#la mezcla en proporciones similares no es buena se?al.
+
+ctree.pred <- predict(fit.ctree, gender.validate, type="response")
+
+ctree.perf <- table(gender.validate$Gender, ctree.pred,
+                    dnn=c("Actual", "Predicted"))
+
+ctree.perf
+
+plot(ctree.perf, main="Conditional Inference Tree")
+
+#modelo robusto: significa que llega a resultados similares por diferentes caminos.
+#modelo parsimonioso: que se explica con un numero reducido de variables.

@@ -1,0 +1,21 @@
+{
+    "collab_server" : "",
+    "contents" : "library(stats)\nstr(swiss): head(swiss)\n\nx <- swiss$Education[1:25]\nsort(x, method=\"sh\",index.return = TRUE)\n\ny <- as.integer(rnorm(200, 5, 7))\nsort(y, method=\"quick\") \n\n\nx<-c(1:80, 78:34, 1,2,3,4,5,6,7,5,4,3,2)\nn<-10\ndivideenBloques <- function( x, n){\n  tam<-length(x)%/%n\n  list<- NULL\n  j<-1\n  for (i in 0:(n-2)){\n    list<-c(list,c(i*tam+1, (i+1)*tam))\n  }\n  list <-c (list, c((i+1)*tam)+1, length(x))\n}\nlista<-divideenBloques(x,n)",
+    "created" : 1507562009281.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1572335125",
+    "id" : "D7F86340",
+    "lastKnownWriteTime" : 1507565627,
+    "last_content_update" : 1507565627086,
+    "path" : "~/Documents/CUNEF/Programacion en R/RSTUDIO/Proyectos/Practica 9 Oct/script.R",
+    "project_path" : "script.R",
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

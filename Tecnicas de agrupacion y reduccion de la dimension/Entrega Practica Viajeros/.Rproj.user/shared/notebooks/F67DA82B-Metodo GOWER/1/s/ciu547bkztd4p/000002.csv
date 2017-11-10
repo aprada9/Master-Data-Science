@@ -1,0 +1,5 @@
+"0","tsne_obj = Rtsne(gower_dist2, is_distance = TRUE)"
+"0","tsne_data=tsne_obj$Y %>%"
+"0","data.frame() %>%"
+"0","setNames(c(""X"", ""Y"")) %>%"
+"0","mutate(cluster = factor(pam_fit$clustering))"

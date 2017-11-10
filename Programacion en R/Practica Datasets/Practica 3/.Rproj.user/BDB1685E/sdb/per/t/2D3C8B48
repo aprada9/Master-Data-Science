@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1506531071587.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "2D3C8B48",
+    "lastKnownWriteTime" : 8028057079027597318,
+    "last_content_update" : 1506531071587,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "81563C4A",
+        "caption" : "miagenda2",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=miagenda2&cache_key=81563C4A",
+        "displayedObservations" : 6,
+        "environment" : "",
+        "object" : "miagenda2",
+        "preview" : 0,
+        "totalObservations" : 6,
+        "variables" : 2
+    },
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

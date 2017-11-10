@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1509024245529.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "271224FF",
+    "lastKnownWriteTime" : 4294967302,
+    "last_content_update" : 1509024245529,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "932DD8CD",
+        "caption" : "Fondos",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=Fondos&cache_key=932DD8CD",
+        "displayedObservations" : "496",
+        "environment" : "",
+        "object" : "Fondos",
+        "preview" : "0",
+        "totalObservations" : "496",
+        "variables" : "29"
+    },
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

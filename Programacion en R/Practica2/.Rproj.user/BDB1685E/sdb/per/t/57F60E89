@@ -1,0 +1,21 @@
+{
+    "collab_server" : "",
+    "contents" : "#Álvaro de Prada\n2*A-B\nC<-(2*A-B)\ntypeof(C)\nPares<-Numeros[(Numeros%%2)==0]\nPares\nls()\nls.str\n\nF.edades<-Edades[s.edades]\nprint(F.edades)\n\nSecuencia <-seq(from=3, to=7, by=1)\nSecuencia\n\n\nPrimos[Secuencia]; Primos[Secuencia-1]; Primos[Secuencia-2]; Secuencia.siguiente<-Secuencia+6; Secuencia.siguiente; Primos[Secuencia.siguiente] \nSecuencia.siguiente\nPrimos[Secuencia.siguiente]\n",
+    "created" : 1506353179402.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2474175858",
+    "id" : "57F60E89",
+    "lastKnownWriteTime" : 1506425227,
+    "last_content_update" : 1506425227867,
+    "path" : "~/Documents/CUNEF/Programacion en R/RSTUDIO/Proyectos/AlvaroP2.R",
+    "project_path" : null,
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

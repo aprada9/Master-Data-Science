@@ -1,0 +1,30 @@
+]0;~/Documents/CUNEF/Fundamentos de analisis e investigacion/Practicas R/Ejercicios Calculo 1 y 2[?1034hMacBook-Air-de-Alvaro:Ejercicios Calculo 1 y 2 alvarodeprada$ [KMacBook-Air-de-Alvaro:Ejercicios Calculo 1 y 2 alvarodeprada$ http://osl.ugr.es/CTAN/systems/texlive/tl net[K[K[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[K
+[K[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[Ksudo tlmgr install titling
+Password:
+tlmgr: package repository http://osl.ugr.es/CTAN/systems/texlive/tlnet (not verified: gnupg not available)
+===============================================================================
+tlmgr itself needs to be updated.
+Please do this via either
+  tlmgr update --self
+or by getting the latest updater for Unix-ish systems:
+  http://mirror.ctan.org/systems/texlive/tlnet/update-tlmgr-latest.sh
+and/or Windows systems:
+  http://mirror.ctan.org/systems/texlive/tlnet/update-tlmgr-latest.exe
+Then continue with other updates as usual.
+===============================================================================
+tlmgr: Terminating; please see warning above!
+]0;~/Documents/CUNEF/Fundamentos de analisis e investigacion/Practicas R/Ejercicios Calculo 1 y 2MacBook-Air-de-Alvaro:Ejercicios Calculo 1 y 2 alvarodeprada$ sudo tlmgr install framed
+tlmgr: package repository http://osl.ugr.es/CTAN/systems/texlive/tlnet (not verified: gnupg not available)
+===============================================================================
+tlmgr itself needs to be updated.
+Please do this via either
+  tlmgr update --self
+or by getting the latest updater for Unix-ish systems:
+  http://mirror.ctan.org/systems/texlive/tlnet/update-tlmgr-latest.sh
+and/or Windows systems:
+  http://mirror.ctan.org/systems/texlive/tlnet/update-tlmgr-latest.exe
+Then continue with other updates as usual.
+===============================================================================
+tlmgr: Terminating; please see warning above!
+]0;~/Documents/CUNEF/Fundamentos de analisis e investigacion/Practicas R/Ejercicios Calculo 1 y 2MacBook-Air-de-Alvaro:Ejercicios Calculo 1 y 2 alvarodeprada$ 
+]0;~/Documents/CUNEF/Fundamentos de analisis e investigacion/Practicas R/Ejercicios Calculo 1 y 2MacBook-Air-de-Alvaro:Ejercicios Calculo 1 y 2 alvarodeprada$ 

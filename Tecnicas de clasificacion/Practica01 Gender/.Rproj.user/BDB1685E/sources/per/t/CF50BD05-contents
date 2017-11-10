@@ -1,0 +1,123 @@
+---
+title: "Práctica Gender - Álvaro de Prada"
+output:
+  word_document: default
+  html_notebook: default
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+Enunciado de la tarea:
+"La tarea que deben realizar del tema Arboles consistirá en la resolución del arbol Gender Discrimination que tienen en el material de dicho tema. Tendrán que elaborar un script con la programación del arbol y su resolución así como la elaboración de un informe en donde expliciten los resultados principales y el análisis e interpretación exhaustiva desde un punto de vista económico de los resultados obtenidos. Deben elaborar también dentro de dicho informe aquellas conclusiones que les parezcan oportunas a partir del análisis realizado."
+
+1 - Descargamos los datos
+```{r}
+#Al tratarse de un proyecto nuevo, tenemos establecida como carpeta ruta la carpeta en la que está el proyecto, en donde hemos guardado los demas archivos, por lo que no hace falta volver a definir la ruta
+getwd()
+
+gender <- read.csv("http://www.biz.uiowa.edu/faculty/jledolter/DataMining/GenderDiscrimination.csv")
+
+head(gender, 6) # Comprobamos el encabezado de gender
+```
+2 - A continuación dibujamos para ver la proporcion de masculino y femenino antes de proceder a establecer la semilla
+```{r}
+plot(gender$Gender)
+table(gender$Gender)
+length(gender$Gender[gender$Gender=="Female"])
+# Hay 140 female y 68 male, por lo que el 67.3% de la muestra es female
+```
+3 - Establecemos la semilla aleatoria
+```{r}
+# Establezco la semilla aleatoria
+set.seed(246)
+train <- sample(nrow(gender), 0.7*nrow(gender))
+
+# Creo los data frames para la muestra de entrenamiento y validación
+df.train <- gender[train,]
+
+df.validate <- gender[-train,]
+
+# Volvemos a hacer la gráfica para comprobar si mantiene la proporción
+par(mfrow=c(1,2))    #esta línea realiza ambos graficos juntos, lo que nos facilita la comparación visual.
+
+plot(df.train$Gender)
+table(df.train$Gender)
+# comprobamos que en la muestra hay 98 female y 47 male.
+
+plot(df.validate$Gender)
+table(df.validate$Gender)
+# tenemos un total de 42 female y 21 male.
+
+# Los resultados tanto de la muestra de entrenamiento como de la muestra de validación parecen estar bien distribuidos, por lo que trabajaremos con ellas.
+```
+4 - Definimos el arbol
+```{r}
+library(rpart)
+
+# Estimamos el arbol
+
+arbol <- rpart(Gender ~ ., data=df.train, method="class",
+               parms=list(split="information"))
+print(arbol)
+summary(arbol)
+
+#dibujamos el arbol sin podar
+library(rpart.plot)
+prp(arbol, type=2, extra=104, fallen.leaves= TRUE, main="arbol general")
+
+#miramos el cp y escogemos el punto de corte donde tenga el menor error que en este caso es el terero.
+
+arbol$cptable
+
+# Representamos gráficamente la curva cp
+
+plotcp(arbol)
+
+```
+5 - A continuación 'podamos` el arbol
+```{r}
+arbol.podado <- prune(arbol, cp= 0.02127660 )
+
+print(arbol.podado)
+# y volvemos a pintar el arbol una vez podado
+prp(arbol.podado, type = 2, extra = 104,
+    fallen.leaves = TRUE, main="Arbol final")
+```
+6 - Realizamos la predicción tanto del arbol podado como del arbol sin podar, y las comparamos
+```{r}
+# predicción con la muestra de validacion
+arbol.pred <- predict(arbol.podado, df.validate, type="class")
+
+arbol.perf <- table(df.validate$Gender, arbol.pred,
+                    dnn=c("Actual", "Predicted"))
+
+arbol.perf
+
+
+#vamos a comparar que hubiera pasasdo si no lo hubiéramos podado:
+arbol.pred1 <- predict(arbol, df.validate, type="class")
+
+arbol.perf1 <- table(df.validate$Gender, arbol.pred1,
+                    dnn=c("Actual", "Predicted"))
+
+arbol.perf1
+
+# En conclusion vemos que nuestro arbol podado sale igual que si no lo podamos, es decir, hemos ahorrado en complejidad
+```
+
+-CONCLUSIONES-
+```{r}
+#lo representamos en un grafico diferente.
+library(partykit)
+
+plot(as.party(arbol.podado))
+
+```
+Conclusiones: Cuanto más homogéneo sea el color del nodo mejor será el resultado.
+A la vista de los resultados:
+-En el primer nodo se anaizan los salarios menores de 87.900, estableciéndose una probabilidad mayor para las mujeres que para los hombres, por lo que las mujeres tienen mayor probabilidad que los hobres de estar en el rango salarial mas bajo.
+- En el segungundo nodo, se analizan los salarios comprendidos entre 87.900 y 109.300, con una experiencia MAYOR a 10.5 años, dándose nuevamente mayor probabilidad de este suceso a las mujeres que a los hombres.
+- En el tercer nodo se analizan los salarios comprendidos entre 87.900 y 109.300, con una experiencia MENOR a 10.5 años, dándose más probabilidad de este suceso a los hombres que a las mujeres.
+En el último nodo se analizan los salarios superiores a 109.300 independientemente de la experiencia, Estableciendose superior la priobabilidad en hombres que en mujeres.
+
+Por lo tanto se concluye que existe una diferencia salarial entre hombres y mujeres en la que las mujeres tienden a ganar menos dinero aun teniendo más experiencia que los hombres.

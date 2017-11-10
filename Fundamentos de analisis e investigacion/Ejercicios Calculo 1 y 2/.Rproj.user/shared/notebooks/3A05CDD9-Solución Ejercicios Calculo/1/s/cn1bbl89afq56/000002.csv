@@ -1,0 +1,2 @@
+"0","g4=mosaicCalc::D(exp(-(x^2)) ~x)    "
+"0","plotFun(g4 , x.lim=range(-2,2) )  "

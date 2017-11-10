@@ -1,0 +1,21 @@
+{
+    "collab_server" : "",
+    "contents" : "#Importar archivo\nfemales <- read_csv(\"~/Documents/CUNEF/Programacion en R/RSTUDIO/Proyectos/Practica Datasets/Practica 4/female_names.csv\")\n\n# Definir un res que sea el año y las veces que se repite ISABEL\ncontador=0\nres<-NULL\nfor (i in 1:length(females$Year)) {\n  if (females$Name[i] ==\"ISABEL\") {res <-c (res, females$Year[i], females$Frequency[i])}\n}\n\n#Igual que el anterior pero construyendo un DataFrame con los resultados de la frecuencia del nombre por año.\nres.Year<-NULL\nres.Frequency<-NULL\nfor (i in 1:length(females$Year)) {\n  if (females$Name[i] ==\"ISABEL\") \n  {\n    res.Year <-c (res.Year, females$Year[i])\n    res.Frequency<-c(res.Frequency, females$Frequency[i])\n  }\n}  \n\nres<-data.frame(res.Year, res.Frequency)\n\n##idem pero utilizando que la base de datos está ordenada por nombres y por años y utilizando también que el número de años está limitado\n\n\nini<-min(females$Year)\nfin<-max(females$Year)\nrango.anual<-fin-ini+1\ni<-1\nwhile (females$Name[i]!=\"INGRID\") {i<-i+1}\n\n#Ahora i apunta al primer INGRID\nj<-1\nres.Year<-NULL\nres.Frequency<-NULL\nwhile  (females$Name[i] ==\"INGRID\")\n  {res.Year <-c(res.Year, females$Year[i])\n  res.Frequency<-c(res.Frequency, females$Frequency[i])\n  i<-i+1\n  }\n\nres<-data.frame(res.Year, res.Frequency)\n\n\n\n\n\n\n\n\n",
+    "created" : 1507128379135.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "4111784060",
+    "id" : "1BE333FA",
+    "lastKnownWriteTime" : 1507133014,
+    "last_content_update" : 1507133014257,
+    "path" : "~/Documents/CUNEF/Programacion en R/RSTUDIO/Proyectos/Practica Datasets/Practica 4/Script buscador.R",
+    "project_path" : "Script buscador.R",
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

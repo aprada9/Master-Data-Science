@@ -1,0 +1,7 @@
+"0","g7=mosaicCalc::D(cos(2*t) ~ t&t&t&t)
+g7
+"
+"1","function (t) 
+"
+"1","cos(2 * t) * 2 * 2 * 2 * 2
+"

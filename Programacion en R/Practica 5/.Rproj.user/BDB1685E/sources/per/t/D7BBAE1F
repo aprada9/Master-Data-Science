@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1508151384227.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "981791995",
+    "id" : "D7BBAE1F",
+    "lastKnownWriteTime" : 1509971230,
+    "last_content_update" : 1509971230381,
+    "path" : "~/Documents/CUNEF/Programacion en R/RSTUDIO/Proyectos/Practica 5/Practica5.R",
+    "project_path" : "Practica5.R",
+    "properties" : {
+        "cursorPosition" : "10,34",
+        "docOutlineVisible" : "0",
+        "scrollLine" : "0"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

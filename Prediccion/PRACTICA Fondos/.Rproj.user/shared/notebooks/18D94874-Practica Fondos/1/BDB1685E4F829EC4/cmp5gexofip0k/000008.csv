@@ -1,0 +1,5 @@
+"0","library (leaps)"
+"0","regfit.full=regsubsets(rent_1~.,Fondos, really.big=T )"
+"2","1047  linear dependencies found"
+"1","Reordering variables and trying again:
+"

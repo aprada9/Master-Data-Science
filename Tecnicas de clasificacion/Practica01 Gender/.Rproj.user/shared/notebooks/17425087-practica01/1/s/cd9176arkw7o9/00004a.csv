@@ -1,0 +1,8 @@
+"0","#Al tratarse de un proyecto nuevo, tenemos establecida como carpeta ruta la carpeta en la que está el proyecto, en donde hemos guardado los demas archivos, por lo que no hace falta volver a definir la ruta"
+"0","getwd()"
+"1","[1]"
+"1"," ""/Users/alvarodeprada/Documents/CUNEF/Tecnicas de clasificación/Practicas a entregar/Practica01 Gender"""
+"1","
+"
+"0","gender <- read.csv(""http://www.biz.uiowa.edu/faculty/jledolter/DataMining/GenderDiscrimination.csv"")"
+"0","head(gender, 6) # Comprobamos el encabezado de gender"

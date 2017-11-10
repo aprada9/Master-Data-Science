@@ -1,0 +1,2 @@
+"0","ggplot(aes(x = clusters, y = PAIS_RESID_AGRUP), data = resultado, colour = 'red') +"
+"0","   geom_point(size = 4, alpha=0.3 , position=""jitter"",  colour = 'dark blue')"

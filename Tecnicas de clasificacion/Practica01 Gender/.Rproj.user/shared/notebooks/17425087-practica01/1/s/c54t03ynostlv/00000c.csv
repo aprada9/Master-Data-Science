@@ -1,0 +1,3 @@
+"0","#lo representamos en un grafico diferente."
+"0","library(partykit)"
+"0","plot(as.party(arbol.podado))"

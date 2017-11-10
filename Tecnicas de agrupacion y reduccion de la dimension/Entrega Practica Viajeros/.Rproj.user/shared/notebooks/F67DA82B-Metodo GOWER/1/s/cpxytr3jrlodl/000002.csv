@@ -1,0 +1,7 @@
+"0","sil_ancho = c(NA)"
+"0","for(i in 2:10){"
+"0","pam_fit = pam(gower_dist2,"
+"0","              diss = TRUE,"
+"0","              k = i)"
+"0","sil_ancho[i] = pam_fit$silinfo$avg.width"
+"0","}"

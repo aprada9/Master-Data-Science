@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "set.seed(1)\nnum = as.integer(runif(1,1,100))\n\nif (num%%2 == 0) {\n  cat(num, \"is an even number.\")\n} else {\n  cat(num, \"is an odd number.\")\n}\n\nfor (i in seq(from=5, to=15, by=5))\n  print (i)\n\nmarks <- c(70,56,78,34)\np<-0\nfor (mark in marks) {\n  if (mark >= 50) p<-p+1\n}\ncat(p, \"students passed.\\n\")\n",
+    "created" : 1506450825017.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "252052273",
+    "id" : "47BA9A5C",
+    "lastKnownWriteTime" : 1506451816,
+    "last_content_update" : 1506451816310,
+    "path" : "~/Documents/CUNEF/Programacion en R/RSTUDIO/Proyectos/Practica Datasets/Martes26sept/Script1.R",
+    "project_path" : "Script1.R",
+    "properties" : {
+        "docOutlineVisible" : "1",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

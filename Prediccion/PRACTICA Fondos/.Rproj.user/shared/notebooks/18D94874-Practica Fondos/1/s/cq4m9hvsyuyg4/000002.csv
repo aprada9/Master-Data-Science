@@ -1,0 +1,4 @@
+"0","library(car)"
+"0","library(readr)"
+"0"," Fondos <- read.csv2(file = ""Fondos.csv"")"
+"0"," "

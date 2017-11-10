@@ -1,0 +1,18 @@
+set.seed(1)
+num = as.integer(runif(1,1,100))
+
+if (num%%2 == 0) {
+  cat(num, "is an even number.")
+} else {
+  cat(num, "is an odd number.")
+}
+
+for (i in seq(from=5, to=15, by=5))
+  print (i)
+
+marks <- c(70,56,78,34)
+p<-0
+for (mark in marks) {
+  if (mark >= 50) p<-p+1
+}
+cat(p, "students passed.\n")

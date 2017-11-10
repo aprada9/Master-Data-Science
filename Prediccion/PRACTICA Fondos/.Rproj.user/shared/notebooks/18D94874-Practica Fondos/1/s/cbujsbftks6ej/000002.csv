@@ -1,0 +1,8 @@
+"0","regres.train2 =lm(formula = rent_1 ~ X1_Week_Return + X1_Week_Return:rent_6_meses + rent_6_meses + rent_en_el_anio + Volatilidad_3 + Media_3, data = Fondos ,subset =train )"
+"0","mean((rent_1-predict(regres.train2 ,Auto,na.action=na.omit))[-train ]^2)"
+"2","'newdata' had 392 rows but variables found have 495 rows"
+"2","longitud de objeto mayor no es múltiplo de la longitud de uno menor"
+"1","[1]"
+"1"," 23.73308"
+"1","
+"

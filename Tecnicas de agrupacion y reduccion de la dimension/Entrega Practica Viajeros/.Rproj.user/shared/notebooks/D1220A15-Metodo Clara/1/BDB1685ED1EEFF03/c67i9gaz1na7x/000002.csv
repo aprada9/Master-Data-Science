@@ -1,0 +1,2 @@
+"0","set.seed(123)"
+"0","naviajeros.mas = naviajeros[sample(1:nrow(naviajeros), 500, replace=FALSE),] "

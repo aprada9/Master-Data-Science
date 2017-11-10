@@ -1,0 +1,71 @@
+
+
+viajerosv5 <- read.csv("viajeros.csv")
+dim(viajerosv5)
+
+# creando un data.matrix hacemos que las columnas que tienen palabras o frases se conviertan en valores. 
+# Por ejemplo sexo = hombre se convierte en 2
+
+dfviajeros <- data.matrix(viajerosv5)
+
+# Como hay filas en las que no hay valor, se carga como NA, y con na.omit nos los cargamos.
+dfviajeros <- na.omit(dfviajeros)
+
+
+# Como la lista es eterna cogemos una muestra:
+
+smpleviajeros  <- dfviajeros[sample(nrow(dfviajeros),500),]
+View(smpleviajeros)  
+
+# Tipificamos para que todos tengan la misma escala
+
+smpleviajerosnorm <- scale(smpleviajeros[,-1])
+View(smpleviajerosnorm)
+
+# Y generamos los estadisticos de posición y dispersión habituales, empleando de momento las 7 primeras variables:
+
+viajeros_stats = data.frame(
+  Min = apply(smpleviajerosnorm[,1:7], 2, min), # mínimo
+  Med = apply(smpleviajerosnorm[,1:7], 2, median), # mediana
+  Mean = apply(smpleviajerosnorm[,1:7], 2, mean), # media
+  SD = apply(smpleviajerosnorm[,1:7], 2, sd), # desviación típica
+  Max = apply(smpleviajerosnorm[,1:7], 2, max) # máximo
+)
+
+viajeros_stats = round(viajeros_stats, 1) 
+head(viajeros_stats)
+
+
+#Empleamos dist() con métrica euclídea para generar la matriz de disimilaridades:
+smpleviajerosnorm <- as.data.frame(smpleviajerosnorm)
+d = dist(smpleviajerosnorm, method = "euclidean")
+
+#Aplicamos el método de Ward para llevar a cabo la segmentación:
+viajeros.hc = hclust(d, method = "ward.D2" )
+
+# Representamos ahora el dendrograma, y rodeamos los grupos creados con un rectángulo de color:
+
+plot(viajeros.hc, cex = 0.6, hang = -1, main="Dendrograma - hclust") 
+rect.hclust(viajeros.hc, k=3, border = 2:4)
+
+
+#Dividimos en tres grupos a la vista del grafo anterior:
+grp = cutree(viajeros.hc, k = 3)
+
+# Y observamos el número de elementos de cada segmento:
+table(grp)
+
+
+# Finalmente visualizamos los grupos con factoextra:
+library(factoextra)
+fviz_cluster(list(data = smpleviajerosnorm, cluster = grp), stand = FALSE, geom = "point", pointsize = 1, title="Clusters generados - hclust")
+
+
+
+
+
+
+
+
+
+

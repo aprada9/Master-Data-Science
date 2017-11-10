@@ -1,0 +1,2 @@
+"0","ggplot(aes(x = clusters, y = VALORACION_AMBIENTE_NOCTURNO), data = resultado) +"
+"0","   geom_point(size = 4, alpha=0.2 , position=""jitter"",  colour = 'dark blue')"

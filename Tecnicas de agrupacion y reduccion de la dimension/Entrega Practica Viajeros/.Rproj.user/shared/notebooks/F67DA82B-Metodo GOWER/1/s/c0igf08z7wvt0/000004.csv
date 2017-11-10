@@ -1,0 +1,5 @@
+"0","set.seed(1234)"
+"0","viajeros.gow= naviajeros[sample(1:nrow(naviajeros), 500, replace=FALSE),]"
+"0","viajeros.gow=viajeros.gow[,1:36]"
+"0","# calcula la distancia de Gower para todas las variables;"
+"0","gower_dist= daisy(viajeros.gow,metric = ""gower"")"

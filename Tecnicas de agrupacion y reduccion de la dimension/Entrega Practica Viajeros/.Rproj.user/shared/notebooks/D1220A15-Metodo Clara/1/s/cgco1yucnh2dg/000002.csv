@@ -1,0 +1,2 @@
+"0","require(factoextra)"
+"0","fviz_cluster(viajeros.clara, stand = TRUE, geom = ""point"", pointsize = 1)"

@@ -1,0 +1,6 @@
+"0","mean((rent_1-predict(regres.train ,Auto,na.action=na.omit))[-train ]^2)"
+"2","'newdata' had 392 rows but variables found have 495 rows"
+"1","[1]"
+"1"," 1.224641"
+"1","
+"

@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1508161894677.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "77F594F1",
+    "lastKnownWriteTime" : 4337121792,
+    "last_content_update" : 1508161894677,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "80A9562A",
+        "caption" : "tabla2",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=tabla2&cache_key=80A9562A",
+        "displayedObservations" : 200,
+        "environment" : "",
+        "object" : "tabla2",
+        "preview" : 0,
+        "totalObservations" : 200,
+        "variables" : 4
+    },
+    "relative_order" : 7,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

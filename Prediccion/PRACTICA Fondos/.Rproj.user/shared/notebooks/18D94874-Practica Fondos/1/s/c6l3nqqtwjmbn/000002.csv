@@ -1,0 +1,2 @@
+"0","Outliers01 <-c(118,476,173,11,22)"
+"0","Fondos=Fondos[-Outliers01,]"

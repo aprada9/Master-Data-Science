@@ -1,0 +1,6 @@
+"0","fviz_cluster(viajeros.clara ,"
+"0","             palette = c(""#FC4E07"",""#00AFBB""), # color palette"
+"0","             ellipse.type = ""t"", # Concentration ellipse"
+"0","             geom = ""point"", pointsize = 1,"
+"0","             ggtheme = theme_classic()"
+"0","             )"

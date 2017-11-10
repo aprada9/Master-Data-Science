@@ -1,0 +1,40 @@
+require(cluster) # para los algoritmos PAM y CLARA 
+require(fpc) # idem
+require(factoextra) # para visualizar
+library(readr)
+
+
+##Metodo Clara:
+
+
+viajerosv5 <- read.csv("viajeros.csv")
+naviajeros <- na.omit(viajerosv5)
+naviajeros <- naviajeros[,4:31]
+summary(naviajeros)
+
+set.seed(123)
+naviajeros.mas = naviajeros[sample(1:nrow(naviajeros), 500, replace=FALSE),] 
+
+naviajeros.tip = scale(naviajeros.mas)
+summary(naviajeros.tip)
+
+
+require(NbClust)
+
+Nb.viajeros=NbClust(naviajeros.tip, distance = "euclidean", min.nc = 2, max.nc = 10, method = "complete", index ="all")
+
+fviz_nbclust(Nb.viajeros) + theme_minimal() + labs(x="Número k de clusters", y="Frecuencia")
+
+
+
+require(cluster)
+viajeros.clara=clara(naviajeros, 2, samples=200)
+require(factoextra)
+fviz_cluster(viajeros.clara, stand = TRUE, geom = "point", pointsize = 1)
+
+
+plot(silhouette(viajeros.clara),col = 2:3, main = "Gráfico de perfil")
+
+
+
+
