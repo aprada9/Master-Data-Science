@@ -1,0 +1,2 @@
+"0","loanStats1<-data.frame(loanstats$dti,loanstats$grade,loanstats$int_rate,loanstats$revol_util, FullyPaid, loanstats$annual_inc,loanstats$total_acc, loanstats$loan_amnt, loanstats$total_pymnt, loanstats$total_rec_int)"
+"0","head(loanStats1)"

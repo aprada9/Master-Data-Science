@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1509981550043.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "4098013021",
+    "id" : "D99FF779",
+    "lastKnownWriteTime" : 1510828842,
+    "last_content_update" : 1510828842062,
+    "path" : "~/Documents/CUNEF/Visualizacion/Practicas Vis/Entregas/SHINY SESIÓN III - GENERAR MUESTRAS ALEATORIAS/ui.R",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "19,58",
+        "scrollLine" : "5",
+        "tempName" : "Untitled2"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

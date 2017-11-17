@@ -1,0 +1,256 @@
+---
+title: "Lending Club"
+author: "Alvaro de Prada"
+date: "16/11/2017"
+output: pdf_document
+---
+
+
+```{r}
+ library(readr)
+loanstats<-read.csv("LoanStats3a.csv", skip = 1, header=T, sep=",", dec=".", fill = T)
+
+#head(loanstats$grade)
+#head(loanstats)
+```
+```{r}
+table(loanstats$loan_status)
+```
+
+
+
+```{r}
+unique(loanstats$loan_status, incomparables = FALSE, fromLast = FALSE,
+        nmax = NA)
+
+```
+Compruebo que hay un valor en blanco, por lo que lo elimino de la tabla:
+
+```{r}
+
+plot(loanstats$loan_status)
+table(loanstats$loan_status)
+loanstats<-loanstats[loanstats$loan_status!="",]
+table(loanstats$loanstats.loan_status)
+loanstats$loan_status = gsub("Does not meet the credit policy. Status:Charged Off", "Charged Off",loanstats$loan_status)
+loanstats$loan_status = gsub("Does not meet the credit policy. Status:Fully Paid", "Fully Paid",loanstats$loan_status)
+```
+
+Además, he comprobado que existen otros 4 valores, pero pueden ser agrupados en 2; Charged Off y Fully Paid, por lo que establebeceremos que estos valores sean una variable de tipo dicotómica, siendo 0 que no ha pagado, y 1 que ha pagado:
+```{r}
+EstadoPrest<-loanstats$loan_status
+table( EstadoPrest)
+```
+```{r}
+class(EstadoPrest)
+EstadoPrest <- factor(EstadoPrest, labels=0:1)
+plot( EstadoPrest)
+```
+```{r}
+class(EstadoPrest)
+```
+```{r}
+cleandata<-data.frame(EstadoPrest, loanstats$dti, loanstats$grade, loanstats$int_rate, loanstats$revol_util, loanstats$annual_inc, loanstats$total_acc, loanstats$loan_amnt, loanstats$total_pymnt, loanstats$total_rec_int)
+
+```
+
+
+
+```{r}
+table(cleandata$loanstats.grade) 
+```
+
+```{r}
+cleandata$loanstats.grade <- factor(cleandata$loanstats.grade, labels=1:7)
+table(cleandata$loanstats.grade)
+
+```
+
+```{r}
+typeof(cleandata$EstadoPrest) #integer
+typeof(cleandata$loanstats.dti) #integer
+typeof(cleandata$loanstats.grade)  #integer
+typeof(cleandata$loanstats.int_rate) #integer
+typeof(cleandata$loanstats.revol_util) #integer
+typeof(cleandata$loanstats.annual_inc) #integer
+typeof(cleandata$loanstats.total_acc) #integer
+typeof(cleandata$loanstats.loan_amnt) #integer
+typeof(cleandata$loanstats.total_pymnt) #integer
+typeof(cleandata$loanstats.total_rec_int) #double
+```
+
+
+```{r}
+#quitamos el simbolo %
+cleandata$loanstats.int_rate = gsub("%", "",cleandata$loanstats.int_rate)
+head(cleandata$loanstats.int_rate)
+cleandata$loanstats.revol_util= gsub("%", "",cleandata$loanstats.revol_util)
+head(cleandata$loanstats.revol_util)
+#convertimos a numeric
+cleandata$loanstats.dti<-as.numeric(paste(cleandata$loanstats.dti))
+cleandata$loanstats.int_rate<-as.numeric(paste(cleandata$loanstats.int_rate))/100
+cleandata$loanstats.revol_util<-as.numeric(paste(cleandata$loanstats.revol_util))/100
+cleandata$loanstats.annual_inc<-as.numeric(paste(cleandata$loanstats.annual_inc))
+cleandata$loanstats.total_acc<-as.numeric(paste(cleandata$loanstats.total_acc))
+cleandata$loanstats.total_pymnt<-as.numeric(paste(cleandata$loanstats.total_pymnt))
+
+cleandata$loanstats.loan_amnt<-as.numeric(paste(cleandata$loanstats.loan_amnt))
+cleandata$loanstats.total_rec_int<-as.numeric(paste(cleandata$loanstats.total_rec_int))
+cleandata$EstadoPrest<-as.numeric(paste(cleandata$EstadoPrest))
+head(cleandata)
+```
+
+```{r}
+summary(cleandata)
+```
+
+```{r}
+#el numero de Nas es muy peque?o, por lo que los eliminamos, no hace falta hacer ninguna conversion
+cleandata = na.omit(cleandata)
+summary(cleandata)
+sapply(cleandata, class)
+```
+
+##########  MODELADO  ###########
+```{r}
+modelo01=glm(EstadoPrest~loanstats.int_rate+loanstats.revol_util+loanstats.dti+loanstats.int_rate+loanstats.revol_util+
+            loanstats.annual_inc+loanstats.total_acc+loanstats.total_pymnt+loanstats.loan_amnt+
+            loanstats.total_rec_int+loanstats.grade,family="binomial",data=cleandata)
+summary(modelo01)
+```
+
+```{r}
+set.seed(100)
+n=nrow(cleandata)
+id_train <- sample(1:n , 0.90*n)
+cleandata.train = cleandata[id_train,]
+cleandata.test = cleandata[-id_train,]
+```
+
+
+vemos la regresión logística
+```{r}
+cleandata.glm0<-glm(EstadoPrest~loanstats.int_rate+loanstats.dti+loanstats.revol_util+loanstats.dti+loanstats.grade+
+                    loanstats.int_rate+loanstats.revol_util+loanstats.annual_inc+loanstats.total_pymnt+
+                     loanstats.loan_amnt+loanstats.total_rec_int,family=binomial,cleandata.train)
+summary(cleandata.glm0)
+```
+
+
+construimos modelo 2 quitando las variables no significativas:
+
+```{r}
+cleandata.glm1<-glm(EstadoPrest~loanstats.revol_util+loanstats.grade+
+                    loanstats.revol_util+loanstats.annual_inc+loanstats.total_pymnt+
+                     loanstats.loan_amnt+loanstats.total_rec_int,family=binomial,cleandata.train)
+summary(cleandata.glm1)
+```
+
+#comprobamos los estad?sticos AIC y BIC
+```{r}
+AIC(cleandata.glm0)
+```
+```{r}
+AIC(cleandata.glm1)
+```
+```{r}
+BIC(cleandata.glm0)
+```
+```{r}
+BIC(cleandata.glm1)
+```
+# el modelo glm0 es algo mejor que el modelo gml1
+
+#representamos 
+```{r}
+hist(predict(cleandata.glm0))
+hist(predict(cleandata.glm0, type = "response"))
+```
+#elegimos la probabilidad de corte
+```{r}
+table(predict(cleandata.glm0,type="response") > 0.5)
+table(predict(cleandata.glm0,type="response") > 0.3)
+table(predict(cleandata.glm0,type="response") > 0.2)
+#nos quedamos con 0.2
+```
+
+#predecimos dentro de la muestra
+```{r}
+prob.glm0.insample <- predict(cleandata.glm0,type="response")
+predicted.glm0.insample <- prob.glm0.insample > 0.2
+predicted.glm0.insample <- as.numeric(predicted.glm0.insample)
+table(cleandata.train$EstadoPrest, predicted.glm0.insample, dnn=c("Truth","Predicted"))
+#vemos la tasa de error
+mean(ifelse(cleandata.train$EstadoPrest != predicted.glm0.insample, 1, 0))
+```
+#predecimos fuera de la muestra
+```{r}
+prob.glm0.outsample <- predict(cleandata.glm0,cleandata.test,type="response")
+predicted.glm0.outsample <-  prob.glm0.outsample> 0.2
+predicted.glm0.outsample <- as.numeric(predicted.glm0.outsample)
+table(cleandata.test$EstadoPrest, predicted.glm0.outsample, dnn=c("Truth","Predicted"))
+#vemos la tasa de error
+mean(ifelse(cleandata.test$EstadoPrest != predicted.glm0.outsample, 1, 0))
+```
+
+#curva ROC
+```{r}
+library(verification)
+prob.glm0.outsample <- predict(cleandata.glm0,cleandata.test,type="response")
+roc.plot(cleandata.test$EstadoPrest == '1', prob.glm0.outsample)
+#comparamos modelos
+prob.glm1.outsample <- predict(cleandata.glm1,cleandata.test,type="response")
+roc.plot(x= cleandata.test$EstadoPrest == '1', pred=cbind(prob.glm1.outsample,prob.glm0.outsample), legend=TRUE)$roc.vol
+#vemos que los modelos son muy parejos; los modelos predicen bastante bien, estoy conforme con el resultado, se podr?a mejorar pero est? muy cercano al ?ptimo.
+```
+
+#valor de probabilidad de corte optimo
+```{r}
+searchgrid = seq(0.01, 0.99, 0.01)
+
+result = cbind(searchgrid, NA)
+
+cost1 <- function(r, pi){
+  weight1 = 10
+  weight0 = 1
+  c1 = (r==1)&(pi<pcut) 
+  c0 = (r==0)&(pi>pcut) 
+  return(mean(weight1*c1+weight0*c0))
+}
+cleandata.glm0<-glm(EstadoPrest~loanstats.int_rate+loanstats.dti+loanstats.revol_util+loanstats.dti+loanstats.grade+
+                    loanstats.int_rate+loanstats.revol_util+loanstats.annual_inc+loanstats.total_pymnt+
+                     loanstats.loan_amnt+loanstats.total_rec_int,family=binomial,cleandata.train)
+prob <- predict(cleandata.glm1,type="response")
+for(i in 1:length(searchgrid))
+{
+  pcut <- result[i,1]
+ 
+  result[i,2] <- cost1(cleandata.train$EstadoPrest, prob)
+}
+plot(result, ylab="Cost in Training Set")
+# De la gr?fica podemos extraer que hasta 0.8 no cambia mucho, a partir de ah? nos empezaremos a equivocar mucho, por lo tanto 0.5 estar?a bien paranuestro modelo.
+result[which.min(result[,2]),] # el minimo punto de corte ser?a 0.08
+```
+
+
+
+FIN
+
+##########
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

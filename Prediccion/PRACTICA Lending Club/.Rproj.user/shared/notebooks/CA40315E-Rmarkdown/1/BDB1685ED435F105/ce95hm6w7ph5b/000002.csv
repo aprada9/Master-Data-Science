@@ -1,0 +1,4 @@
+"0"," library(readr)"
+"0","loanstats<-read.csv(""LoanStats3a.csv"", skip = 1, header=T, sep="","", dec=""."", fill = T)"
+"0","#head(loanstats$grade)"
+"0","#head(loanstats)"

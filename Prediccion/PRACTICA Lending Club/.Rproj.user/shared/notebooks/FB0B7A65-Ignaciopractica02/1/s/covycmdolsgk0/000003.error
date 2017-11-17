@@ -1,0 +1,1 @@
+{"frames":[{"character_number":0,"end_character_number":0,"end_line_number":0,"file":"","func":"setwd(\"C:/Users/salva/Desktop/ignacio CUNEF/prediccion/practica02\")","line_number":0}],"message":"Error in setwd(\"C:/Users/salva/Desktop/ignacio CUNEF/prediccion/practica02\") : \n  no es posible cambiar el directorio de trabajo\n"}

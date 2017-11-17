@@ -1,0 +1,3 @@
+"0","cleandata<-data.frame(EstadoPrest, loanstats$dti, loanstats$grade, loanstats$int_rate, loanstats$revol_util, "
+"0","                      loanstats$annual_inc, loanstats$total_acc, loanstats$loan_amnt, loanstats$total_pymnt, "
+"0","                      loanstats$total_rec_int)"

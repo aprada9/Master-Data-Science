@@ -1,0 +1,1 @@
+"0","credit.glm0<-glm(FullyPaid~.,family=binomial,credit.train1);  "

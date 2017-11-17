@@ -1,0 +1,492 @@
+---
+title: "Practica2-LoanStats2"
+output:
+  word_document: default
+  html_document: default
+---
+
+Primero descargo la base de datos de loanStats para el a?o 2007-2011, ya que son los mismos a?os que utiliza en el art?culo.
+
+Lectura de datos: 
+ - El fichero .csv tiene 145 variables con un total de 42585 observaciones.
+ - Compruebo si est? bien le?do poniendo que me muestre algunas variables.
+ 
+
+```{r}
+
+rm(list=ls())
+
+setwd("C:/Users/usuario/Desktop/prediccion/MDSF_Prediccion-master/Clase03/practica2prediccion")
+loadstats<-read.csv("LoanStats3a.csv", header=T, sep=",", dec=".", fill = T)
+
+head(loadstats$grade) #grado del riesgo del cr?dito
+#View(table(loadstats$grade))
+#View(table(loadstats$sub_grade))
+#View(table(loadstats$desc))
+
+
+
+```
+
+
+# Estracci?n de datos
+
+Se emplear?, como en el documento, un an?lisis de regresi?n de poisson, donde la variable dependiente ser? "loan_status" que es una variable que eval?a si el pr?stamo realizado se ha devuelto o no se ha devuelto. Para utilizar ?sta variable en la regresi?n cambiar?:
+  1- pr?stamo pagado
+  0-pr?stamo no pagado
+  
+```{r}
+
+plot(loadstats$loan_status)
+table(loadstats$loan_status)
+loadstats<-loadstats[loadstats$loan_status!="f",]
+loadstats<-loadstats[loadstats$loan_status!="",]
+loadstats<-loadstats[loadstats$loan_status!="Aug-2010",]
+loadstats<-loadstats[loadstats$loan_status!="Dec-2010",]
+loadstats<-loadstats[loadstats$loan_status!="Dec-2011",]
+loadstats<-loadstats[loadstats$loan_status!="Feb-2011",]
+loadstats<-loadstats[loadstats$loan_status!="Jul-2010",]
+loadstats<-loadstats[loadstats$loan_status!="Mar-2011",]
+loadstats<-loadstats[loadstats$loan_status!="May-2011",]
+loadstats<-loadstats[loadstats$loan_status!="Nov-2011",]
+loadstats<-loadstats[loadstats$loan_status!="Oct-2010",]
+loadstats<-loadstats[loadstats$loan_status!="Sep-2011",]
+table(loadstats$loadstats.loan_status)
+loadstats$loan_status = gsub("Does not meet the credit policy. Status:Charged Off", "Charged Off",loadstats$loan_status)
+loadstats$loan_status = gsub("Does not meet the credit policy. Status:Fully Paid", "Fully Paid",loadstats$loan_status)
+
+
+
+FullyPaid<-loadstats$loan_status
+table(FullyPaid)
+#plot(table(FullyPaid))
+class(FullyPaid)
+FullyPaid <- factor(FullyPaid, labels=0:1)
+plot(FullyPaid)
+class(FullyPaid)
+
+```
+
+
+
+Teniendo en cuenta el art?culo de "Evaluating Credit Risk and loan performance in 
+online Peer-to-Peer" se realizar?n los siguientes procedimientos:
+
+En el art?culo redacta que se escogen 13 variables de inter?s en la muestra. De ?stas 13 para el an?lisis de regresi?n emplear? 4:
+Seg?n el art?culo, las variables que van a ser significativas son: el grado del cr?dito, ratio deuda ingresos, FICO (que no viene en la muestra) y cantidad del cr?dito que el prestamista est? utilizando para la devoluci?n de los cr?ditos disponibles, que corresponden a los nombres de la tabla:
+  dti
+  grade
+  int_rate
+  revol_util
+
+```{r}
+
+loanStats1<-data.frame(loadstats$dti,loadstats$grade,loadstats$int_rate,loadstats$revol_util, FullyPaid, loadstats$annual_inc,loadstats$total_acc, loadstats$loan_amnt, loadstats$total_pymnt, loadstats$total_rec_int)
+
+head(loanStats1)
+
+
+```
+En R es importante saber qu? tipo de objeto es cada variable, puesto que la mayor?a de funciones lo tienen en cuenta. Para ver el tipo de un objeto, se puede utilizar la funci?n class4. Utilizamos la funci?n sapply que toma como argumento el data.frame, y a cada elemento del data.frame (variables) le aplica la funci?n que especifiquemos.
+
+```{r}
+sapply(loanStats1, class)
+
+```
+
+Cuando se pasan variables num?ricas a factores, R toma como primer nivel, el c?digo m?s peque?o. Si lo que se convierte a factores son variables que contienen caracteres, los ordena alfab?ticamente.
+
+```{r}
+
+
+loanStats1<-loanStats1[loanStats1$loadstats.grade!="",]
+loanStats1<-loanStats1[loanStats1$loadstats.grade!=1,]
+loanStats1<-loanStats1[loanStats1$loadstats.grade!=2,]
+loanStats1<-loanStats1[loanStats1$loadstats.grade!=0,]
+
+par(mfrow=c(1,2))
+barplot(table(loanStats1$loadstats.grade), cex.names = 0.7, cex.axis = 0.7)
+
+loanStats1$loadstats.grade <- factor(loanStats1$loadstats.grade, labels=1:7)
+levels(loanStats1$loadstats.grade)
+head(loanStats1$loadstats.grade)
+
+barplot(table(loanStats1$loadstats.grade), cex.names = 0.7, cex.axis = 0.7)
+
+
+```
+
+
+```{r}
+
+typeof(loanStats1$loadstats.int_rate)
+loanStats1$loadstats.int_rate = gsub("%", "",loanStats1$loadstats.int_rate)
+head(loanStats1$loadstats.int_rate)
+
+
+loanStats1$loadstats.revol_util= gsub("%", "",loanStats1$loadstats.revol_util)
+head(loanStats1$loadstats.revol_util)
+
+loanStats1$loadstats.dti<-as.numeric(paste(loanStats1$loadstats.dti))
+loanStats1$loadstats.int_rate<-as.numeric(paste(loanStats1$loadstats.int_rate))/100
+loanStats1$loadstats.revol_util<-as.numeric(paste(loanStats1$loadstats.revol_util))/100
+loanStats1$loadstats.annual_inc<-as.numeric(paste(loanStats1$loadstats.annual_inc))
+loanStats1$loadstats.total_acc<-as.numeric(paste(loanStats1$loadstats.total_acc))
+loanStats1$loadstats.total_pymnt<-as.numeric(paste(loanStats1$loadstats.total_pymnt))
+
+loanStats1$loadstats.loan_amnt<-as.numeric(paste(loanStats1$loadstats.loan_amnt))
+loanStats1$loadstats.total_rec_int<-as.numeric(paste(loanStats1$loadstats.total_rec_int))
+loanStats1$FullyPaid<-as.numeric(paste(loanStats1$FullyPaid))
+
+```
+
+Por ?ltimo, veamos un res?men de los datos con summary:
+
+```{r}
+sapply(loanStats1, class)
+loanStats1<-na.omit(loanStats1)
+summary(loanStats1)
+#kurtosis(loanStats1)
+#skewness(loanStats1)
+
+```
+
+
+
+
+
+# Estimaci?n del modelo. Funci?n glm de regresi?n log?stica
+
+Creo una muestra de entrenamiento y otra de validaci?n:
+
+
+
+```{r}
+set.seed(1234)
+n=nrow(loanStats1)
+id_train <- sample(1:n , 0.9*n)
+credit.train = loanStats1[id_train,]
+credit.test = loanStats1[-id_train,]
+
+```
+
+Miro los par?metros que acepta la funci?n que voy a emplear glm():
+
+```{r}
+args(glm)
+```
+
+As?, el modelo de regresi?n log?stica con una variable categ?rica explicativa y varias explicativas, se reduce al ajuste de un modelo de regresi?n log?stica con tantas variables explicativas continuas como categor?as de la variable categ?rica menos una m?s el resto de variables explicativas consideradas en el modelo:
+
+
+
+```{r}
+library(glmnet)
+credit.glm0<-glm(FullyPaid~loadstats.grade+loadstats.dti+loadstats.annual_inc+loadstats.total_pymnt+loadstats.loan_amnt,family=binomial,credit.train)
+
+
+```
+
+
+
+
+```{r}
+summary(credit.glm0)
+#+loadstats.total_rec_prncp+loadstats.revol_util+loadstats.int_rate+loadstats.total_pymnt++loadstats.loan_amnt+loadstats.annual_inc+loadstats.int_rate+loadstats.total_pymnt++loadstats.loan_amnt
+```
+
+Los coeficientes del modelo los muestra en formato tabular, a?adiendo el error est?ndar, y el valor z (distr normal) que es el coeficiente dividido por el error.
+
+Este valor se utiliza en el test de Wald para contrastar si el coeficiente es significativo. Se muestran los s?mbolos "*" y ".", que indican la significaci?n
+de los par?metros a diferentes niveles. A un nivel de significaci?n ?? = 0,05 los par?metros asociados  a las variables con "*" son significativamente distintos de 0, ya que el valor del estad?stico de Wald son en valor absoluto  mayores que el punto cr?tico z??/2 = 1,96.En la tercera columna muestra el p-valor de ese contraste.
+
+Por ?ltimo se muestra la devianza del modelo nulo (null deviance) y del modelo ajustado (Residual deviance), con sus respectivos grados de libertad, as? como el valor del AIC (Criterio de informaci?n de Akaike) que es una modificaci?n de la devianza en la que se tiene en cuenta el n?mero de par?metros ajustados.
+
+Para acceder a los resultados del modelo, primero utilizo la funci?n names() para saber c?mo llamarlos:
+
+```{r}
+names(credit.glm0)
+```
+
+En en "fitted.values" se han guardado los valores predichos para p(x):
+
+```{r}
+head(credit.glm0$fitted.values)
+```
+
+En "linear.predictors" se tienen los valores ajustados en la escala de la funci?n link
+
+```{r}
+head(credit.glm0$linear.predictors)
+```
+
+"residuals" no se corresponde con los residuos de pearson o los de la devianza, sino que son los ?ltimos obtenidos en el algoritmo de reponderaci?n por m?nimos cuadrados utilizado en el ajuste
+
+```{r}
+head(credit.glm0$residuals)
+```
+
+Por ?ltimo, los coeficientes del modelo ser?n:
+
+```{r}
+credit.glm0$coefficients
+```
+
+
+La expresi?n del modelo es:
+
+logit[p(x)] = ln [p(x)/1- p(x)]= 3.225672e+00 -6.954270e-02 *int_rate  -1.114349e-05*revol_util-5.449242e-01 * grade2-7.583852e-01  * grade3-9.234591e-01 * grade4 -1.007821e+00 * grade5  -1.164040e+00 * grade6 -1.175819e+00 * grade7+ 3.134227e-05 *dti
+
+Los coeficientes del modelo se interpretan en base a la categor?a de referencia elegida. Las variables de grade toman el valor 1 para los individuos de ese gradoo, y 0 para los que no pertenecen a ese grado. 
+
+El coeficiente del intercept (3.225672e+00), es el logit de la ventaja de la respuesta uso_int =1 en el estrato 6.
+Para comprobarlo, podemos calcular la probabilidad de uso_int=1, en el estrato6 como el inverso de la transformaci?n logit del intercept del modelo.
+
+```{r}
+# funci?n invlogit para pasar de logit a probabilidades
+invlogit <- function(x) {
+1/(1 + exp(-x))
+}
+# aplicamos la funci?n invlogit al primer coeficiente del modelo.3
+invlogit(coef(credit.glm0)[1])
+```
+
+
+Que coincide la proporci?n muestral del uso de internet en el estrato6, de igual forma se puede obtener las proporciones muestrales del resto de los estratos, sin m?s que calcular el inverso del logit de la suma entre el intercept y los distintos coeficientes de las variables auxiliares.
+
+```{r}
+
+invlogit(coef(credit.glm0)[1] + coef(credit.glm0)[4])
+
+invlogit(coef(credit.glm0)[1] + coef(credit.glm0)[5])
+
+invlogit(coef(credit.glm0)[1] + coef(credit.glm0)[6])
+invlogit(coef(credit.glm0)[1] + coef(credit.glm0)[7])
+invlogit(coef(credit.glm0)[1] + coef(credit.glm0)[8])
+
+
+```
+
+
+```{r}
+summary(credit.glm0)$coefficients
+
+```
+
+
+
+# Contraste condicional de raz?n de verosimilitud
+
+
+
+```{r}
+library(car)
+#anova(modelo1, modelo2, test = "Chisq") #anova sin utilizar paquete car
+Anova(credit.glm0) #utilizando pa<quete car
+
+```
+
+
+
+# Intervalos de confianza para los par?metros basados en el test de Wald
+
+
+
+```{r}
+confint.default(credit.glm0, level = (0.75))
+```
+
+revol_util contiene al cero!
+
+# Intervalos de confianza para los e**r
+
+Debido a la interpretaci?n de los par?metros en los modelos de regresi?n log?stica, se suelen calcular los
+intervalos de confianza para los exponenciales de los par?metros, que se corresponden con los cocientes de ventajas. En estos casos, el contraste asociado se define como
+            H0 : e^??r = 1
+            H1 : e^??r != 1
+Y los intervalos de confianza se obtienen a partir de los intervalos anteriores, sin m?s que apli:carles la funci?n e^x, el c?lculo para los intervalos de confianza de los e^??r ser?a
+
+```{r}
+exp(confint.default(credit.glm0, level = 0.75))
+```
+
+y llegamos a la conclusi?n, revol_util no es una variable significativa ni tampoco total_acc.Por tanto, planteamos un nuevo modelo con las variables significativas:
+
+```{r}
+credit.glm1<-glm(FullyPaid~loadstats.int_rate+loadstats.grade+loadstats.annual_inc,family=binomial,credit.train)
+summary(credit.glm1)
+```
+
+
+```{r}
+coef(credit.glm0)
+```
+
+```{r}
+res.p <- residuals(credit.glm0, type = "pearson")
+head(res.p)
+res.p.std <- rstandard(credit.glm0, type = "pearson")
+head(res.p.std)
+
+res.d <- residuals(credit.glm0, type = "deviance")
+head(res.d)
+
+res.dev.std <- rstandard(credit.glm0, type = "deviance")
+head(res.dev.std)
+
+
+```
+
+# Medidas de bondad del ajuste
+
+* Estad?stico G2 de Wilks de raz?n de verosimilitudes.
+```{r}
+credit.glm0$df.residual
+```
+
+aunque lo pone en el summary del modelo, la forma de calcular la desviacion de los residuos es:
+```{r}
+(residuos.deviance <- sum(residuals(credit.glm0, type = "deviance")^2))
+
+```
+
+
+```{r}
+1 - pchisq(residuos.deviance, 38065)
+
+```
+
+Que al ser mayor de 0.05 (para un nivel de confianza del 95 %), aceptar?amos la hip?tesis nula de que el modelo se ajusta globalmente bien a los datos.
+
+
+# Estad?stico X2 de Pearson
+
+```{r}
+(residuos.pearson <- sum(residuals(credit.glm0, type = "pearson")^2))
+1 - pchisq(residuos.pearson, 38065)
+
+```
+
+#Contraste basado en el estad?stico de Hosmer-Lemeshow (utilizado en el art?culo)
+
+Proponen crear grupos de la variable respuesta en base a las probabilidades
+estimadas por el modelo, y comparar las frecuencias de ?xito observadas con las estimadas, mediante el estad?stico usual X2 de Pearson.
+Hosmer y Lemeshow proponen crear 10 grupos, en cuyo caso el estad?stico asociado sigue asint?ticamente una distribuci?n chi-cuadrado con 8 grados de libertad. Para la creaci?n de los grupos hay que elegir los puntos de corte de las probabilidades estimadas.  La primera consiste en dividir las probabilidades estimadas en intervalos de igual amplitud.
+
+```{r}
+yhat <- fitted.values(credit.glm0)
+#a<-fitted.values(credit.glm0)
+#a<-a[a<0.01]
+
+yhat.corte <- cut(yhat, breaks = 10, include.lowest = TRUE)
+# los intervalos tienen igual amplitud pero el n?mero de individuos en
+# cada uno var?a
+table(yhat.corte)
+```
+
+
+```{r}
+a<-fitted.values(credit.glm0)
+a<-a[a<=0]
+a
+
+```
+
+La funci?n cut divide los valores de una variable num?rica en intervalos, y con el argumento breaks podemos indicar las marcas de clase, mediante un vector o, si s?lo ponemos un valor, divide la variable en intervalos de igual amplitud. El resultado de aplicar cut a un vector num?rico es una variable categ?rica (factor en R).
+
+A partir de estos puntos de corte, se construyen las tablas de valores observados y esperados y se calcula el estad?stico chi-cuadrado asociado. Al estad?stico obtenido mediante el primer m?todo se le denomina Hosmer-Lemeshow H statistic y al obtenido por el segundo Hosmer-Lemeshow C statistic.
+En el art?culo original se prefiere el segundo m?todo frente al primero. Para obtener el segundo estad?stico se construyen las tablas de las frecuencias esperadas y observadas de la variable de respuesta.
+
+
+La tabla de los valores observados. Las columnas V1 e y son respectivamente el
+n?mero de individuos en cada grupo que tienen valor fullyPaid=0 y Fullypaid=1
+
+```{r}
+y <- credit.train$FullyPaid
+(obs <- xtabs(cbind(1 - y, y) ~ yhat.corte))
+```
+
+
+La tabla de valores esperados 
+
+
+```{r}
+(expect <- xtabs(cbind(1 - yhat, yhat) ~ yhat.corte))
+
+
+```
+El estad?stico de contraste y p-valor asociado ser?a
+
+```{r}
+(chisq <- sum((obs - expect)^2/expect))
+```
+```{r}
+(P <- 1 - pchisq(chisq, 488))
+## [1] 0.3619
+```
+Podemos escribir una funci?n que calcule el estad?stico de Hosmer-Lemeshow para ambos casos
+
+```{r}
+
+
+library(ResourceSelection)
+hl <- hoslem.test(credit.train$FullyPaid, fitted(credit.glm0), g=10)
+hl
+```
+
+
+Y se aceptar?a la hip?tesis nula de que el modelo se ajusta globalmente a los datos.
+Concluyendo, si tenemos los datos de forma que est?n agrupados o que se puedan agrupar f?cilmente y que adem?s haya un n?mero suficiente de casos en cada combinaci?n de las variables predictoras, se pueden utilizar los contrastes basados en el estad?stico de Wilks G2 o el de Pearson X2. Si los datos no est?n en ese formato, o no se pueden agrupar, hay que utilizar el contraste de Hosmer-Lemeshow o ver medidas alternativas como las medidas tipo R2 o comparando modelos anidados mediante el test condicional de raz?n de verosimilitudes.
+
+
+# Medidas basadas en la tabla de clasificaci?n. Curvas ROC
+
+
+```{r}
+#prediccion<-predict(credit.glm1)
+prediccion <- ifelse(fitted.values(credit.glm0) >= 0.5, 1, 0)
+prediccion
+
+
+```
+
+```{r}
+table(credit.train$FullyPaid, prediccion)
+
+```
+
+```{r}
+tabla.clasif <- table(credit.train$FullyPaid, prediccion)
+tcc <- 100 * sum(diag(tabla.clasif))/sum(tabla.clasif)
+tcc
+
+```
+
+Si elegimos como punto de corte p = 0,5 el modelo clasifica correctamente al 80.43 % de los individuos.
+
+```{r}
+library(ROCR)
+pred <- prediction(fitted.values(credit.glm0), credit.train$FullyPaid)
+
+
+```
+
+La funci?n prediction calcula los valores de verdaderos positivos, verdaderos negativos, falsos positivos
+y falsos negativos para diferentes puntos de corte. Requiere como argumentos las probabilidades estimadas y las etiquetas de la variable respuesta en los datos (en este caso ceros y unos)
+```{r}
+# auc : Area under curve
+AUC <- performance(pred, "auc")
+AUC@y.name
+## [1] "Area under the ROC curve"
+AUC@y.values
+
+# con performance se selecciona tpr (true positive rate) y fpr (false
+# positive rate)
+perf2 <- performance(pred, "tpr", "fpr")
+plot(perf2, colorize = TRUE) # mostramos colores seg?n el punto de corte
+# A?adimos la recta y=x que ser?a la correspondiente al peor clasificador
+abline(a = 0, b = 1)
+# a?adimos el valor del ?rea bajo la curva
+text(0.4, 0.6, paste(AUC@y.name, "\n", round(unlist(AUC@y.values), 3)), cex = 0.7)
+```
+

@@ -1,0 +1,9 @@
+"0","table(loanstats$loanstats.loan_status)"
+"1","< table of extent"
+"1"," "
+"1","0"
+"1"," "
+"1",">
+"
+"0","loanstats$loan_status = gsub(""Does not meet the credit policy. Status:Charged Off"", ""Charged Off"",loanstats$loan_status)"
+"0","loanstats$loan_status = gsub(""Does not meet the credit policy. Status:Fully Paid"", ""Fully Paid"",loanstats$loan_status)"

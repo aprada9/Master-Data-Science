@@ -1,0 +1,305 @@
+---
+title: "Lending Club"
+author: "Álvaro de Prada"
+date: "16/11/2017"
+output: pdf_document
+---
+
+##-PARTE 1: CARGA Y LIMPIEZA DE LOS DATOS-
+
+Procedemos a cargar los datos. Los campos están separados por "," y los decimales se expresan con".".
+```{r}
+ library(readr)
+loanstats<-read.csv("LoanStats3a.csv", skip = 1, header=T, sep=",", dec=".", fill = T)
+
+
+```
+
+
+En este caso de predicción, la variable explicativa que queremos predecir es si el préstamos se va a pagar o no. Esto es expresado en el campo loan_status. Vamos a emplear "unique" para ver que tipos de resultados existen en esta variable:
+```{r}
+unique(loanstats$loan_status, incomparables = FALSE, fromLast = FALSE,
+        nmax = NA)
+
+```
+
+Comprobamos que la variable puede tomar valores en blanco los cuales no podemos interpretar, por lo que eliinamos todas las observaciones que tomen ese valor:
+```{r}
+plot(loanstats$loan_status)
+table(loanstats$loan_status)
+loanstats<-loanstats[loanstats$loan_status!="",]
+```
+También vemos que el valor "Does not meet the credit policy. Status:Charged Off" es igual que "Charged Off" y que "Does not meet the credit policy. Status:Fully Paid" se corresponde con "Fully Paid", por lo que lo formateamos par hacer 2 valores únicos.
+```{r}
+table(loanstats$loanstats.loan_status)
+loanstats$loan_status = gsub("Does not meet the credit policy. Status:Charged Off", 
+                             "Charged Off",
+                             loanstats$loan_status)
+loanstats$loan_status = gsub("Does not meet the credit policy. Status:Fully Paid", 
+                             "Fully Paid",
+                             loanstats$loan_status)
+```
+Una vez hecho esto, la variable explicativa se convierte en una variable dicotómica de pagado/no pagado.
+
+
+Comprobamos el número de préstamos que existen de cada tipo, es decir, sobre el total inicial de 42535 prestamos, 6431 no fueron pagados mientras que 36104 sí fueron pagados:
+```{r}
+EstadoPrest<-loanstats$loan_status
+table(EstadoPrest)
+```
+
+Convertimos la variable en dicotómica (1/0) y la representamos gráficamente:
+```{r}
+class(EstadoPrest)
+EstadoPrest <- factor(EstadoPrest, labels=0:1)
+plot( EstadoPrest)
+```
+```{r}
+class(EstadoPrest)
+```
+
+Tras haber hecho una limpieza inicial de los datos, procedemos a reducir el dataset quedándonos sólo con aquellas variables que puedan ser influyentes a la hora de pagar o no un préstamo. En este caso nos quedamos con un total de 10 variables entre las que se incluyen la variable que queremos predecir (EstadoPrest):
+```{r}
+cleandata<-data.frame(EstadoPrest, loanstats$dti, loanstats$grade, loanstats$int_rate, 
+                      loanstats$revol_util, loanstats$annual_inc, loanstats$total_acc, 
+                      loanstats$loan_amnt, loanstats$total_pymnt, loanstats$total_rec_int)
+
+```
+
+
+Realizamos los mismos pasos que con EstadoPrest para la variable grade, para comprobar así la limpieza de los datos de la variable.
+```{r}
+table(cleandata$loanstats.grade) 
+```
+```{r}
+cleandata$loanstats.grade <- factor(cleandata$loanstats.grade, labels=1:7)
+table(cleandata$loanstats.grade)
+
+```
+
+Comprobamos el formto de los datos de cada una de las variables:
+```{r}
+typeof(cleandata$EstadoPrest)
+```
+```{r}
+typeof(cleandata$loanstats.dti) 
+```
+```{r}
+typeof(cleandata$loanstats.grade)  
+```
+```{r}
+typeof(cleandata$loanstats.int_rate) 
+```
+```{r}
+typeof(cleandata$loanstats.revol_util) 
+```
+```{r}
+typeof(cleandata$loanstats.annual_inc) 
+```
+```{r}
+typeof(cleandata$loanstats.total_acc) 
+```
+```{r}
+typeof(cleandata$loanstats.loan_amnt)
+```
+```{r}
+typeof(cleandata$loanstats.total_pymnt) 
+```
+```{r}
+typeof(cleandata$loanstats.total_rec_int)
+```
+
+Las variables int_rate y revol_util están expresadas en porcentajes, por lo que procedemos a formatearlas para que puedan ser utilizadas en nuestro modelo:
+```{r}
+cleandata$loanstats.int_rate = gsub("%", "",cleandata$loanstats.int_rate)
+head(cleandata$loanstats.int_rate)
+cleandata$loanstats.revol_util= gsub("%", "",cleandata$loanstats.revol_util)
+head(cleandata$loanstats.revol_util)
+```
+
+Y finalmente convertimos todas las variables a numeric (las que eran porcentajes las dividimos por 100 para que estén en la misma escala):
+```{r}
+cleandata$loanstats.dti<-as.numeric(paste(cleandata$loanstats.dti))
+cleandata$loanstats.int_rate<-as.numeric(paste(cleandata$loanstats.int_rate))/100
+cleandata$loanstats.revol_util<-as.numeric(paste(cleandata$loanstats.revol_util))/100
+cleandata$loanstats.annual_inc<-as.numeric(paste(cleandata$loanstats.annual_inc))
+cleandata$loanstats.total_acc<-as.numeric(paste(cleandata$loanstats.total_acc))
+cleandata$loanstats.total_pymnt<-as.numeric(paste(cleandata$loanstats.total_pymnt))
+cleandata$loanstats.loan_amnt<-as.numeric(paste(cleandata$loanstats.loan_amnt))
+cleandata$loanstats.total_rec_int<-as.numeric(paste(cleandata$loanstats.total_rec_int))
+cleandata$EstadoPrest<-as.numeric(paste(cleandata$EstadoPrest))
+head(cleandata)
+```
+
+```{r}
+summary(cleandata)
+```
+
+Vemos que existen campos NAs pero que no son demasiado significativos en cuanto a cantidad comparado con el total, por lo que procedemos a eliminarlos de nuestro dataset:
+```{r}
+cleandata = na.omit(cleandata)
+summary(cleandata)
+sapply(cleandata, class)
+```
+
+
+
+
+##-PARTE 2: MODELO-
+
+Hacemos un modelo de regresión inicial con todas las variables seleccionadas para comprobar como se comporta:
+```{r}
+modelo01=glm(EstadoPrest~loanstats.int_rate+loanstats.revol_util+loanstats.dti+
+               loanstats.int_rate+loanstats.revol_util+loanstats.annual_inc+
+               loanstats.total_acc+loanstats.total_pymnt+loanstats.loan_amnt+
+            loanstats.total_rec_int+loanstats.grade,family="binomial",data=cleandata)
+summary(modelo01)
+```
+Vemos que tras hacer el summary se consideran significativas algunas variables.
+
+
+Procedemos a crear nuestros datasets de entrenamiento y de validación:
+```{r}
+set.seed(100)
+n=nrow(cleandata)
+id_train <- sample(1:n , 0.90*n)
+cleandata.train = cleandata[id_train,]
+cleandata.test = cleandata[-id_train,]
+```
+
+
+Y volvemos a comprobar la regresión logística con todas las variables seleccionadas para nuestro modelo de entrenamiento:
+```{r}
+cleandata.glm0<-glm(EstadoPrest~loanstats.int_rate+loanstats.dti+loanstats.revol_util+
+                      loanstats.dti+loanstats.grade+loanstats.int_rate+loanstats.revol_util+
+                      loanstats.annual_inc+loanstats.total_pymnt+loanstats.loan_amnt+
+                      loanstats.total_rec_int,family=binomial,cleandata.train)
+summary(cleandata.glm0)
+```
+Comprobamos que es bastante similar al modelo inicial con todo el dataset.
+
+Construimos un segundo modelo quitando aquellas variables no significativas:
+
+```{r}
+cleandata.glm1<-glm(EstadoPrest~loanstats.revol_util+loanstats.grade+
+                    loanstats.revol_util+loanstats.annual_inc+loanstats.total_pymnt+
+                     loanstats.loan_amnt+loanstats.total_rec_int,family=binomial,cleandata.train)
+summary(cleandata.glm1)
+```
+
+Comprobamos los estadísticos AIC y BIC para ver que modelo predice mejor.
+```{r}
+AIC(cleandata.glm0)
+```
+```{r}
+AIC(cleandata.glm1)
+```
+```{r}
+BIC(cleandata.glm0)
+```
+```{r}
+BIC(cleandata.glm1)
+```
+Y vemos que el modelo glm0 con todas las variables iniciales seleccionadas es sensiblemente mejor que el segundo modelo.
+
+Procedemos a representar el primer modelo: 
+```{r}
+hist(predict(cleandata.glm0))
+hist(predict(cleandata.glm0, type = "response"))
+```
+Comprobamos varias probabilidades de corte para elegir con cual quedarnos:
+```{r}
+table(predict(cleandata.glm0,type="response") > 0.5)
+table(predict(cleandata.glm0,type="response") > 0.3)
+table(predict(cleandata.glm0,type="response") > 0.2)
+```
+Nos quedaremos con la 0.2.
+
+Llevamos a cabo la predicción dentro de la muestra de entrenamiento:
+```{r}
+prob.glm0.insample <- predict(cleandata.glm0,type="response")
+predicted.glm0.insample <- prob.glm0.insample > 0.2
+predicted.glm0.insample <- as.numeric(predicted.glm0.insample)
+table(cleandata.train$EstadoPrest, predicted.glm0.insample, dnn=c("Realidad","Predicho"))
+mean(ifelse(cleandata.train$EstadoPrest != predicted.glm0.insample, 1, 0))
+```
+Vemos que dentro de los resultados obtenidos son:
+ - 3487 préstamos no pagados predichos como no pagados. Correcto.
+ - 32299 préstamos pagados predichos como pagados. Correcto.
+ - 2261 préstamos no pagados predichos como pagados. Error.
+ - 153 préstamos pagados predichos como no pagados. Error.
+
+Y a continuación realizamos la predicción dentro de la muestra de validación:
+```{r}
+prob.glm0.outsample <- predict(cleandata.glm0,cleandata.test,type="response")
+predicted.glm0.outsample <-  prob.glm0.outsample> 0.2
+predicted.glm0.outsample <- as.numeric(predicted.glm0.outsample)
+table(cleandata.test$EstadoPrest, predicted.glm0.outsample, dnn=c("Realidad","Predicho"))
+mean(ifelse(cleandata.test$EstadoPrest != predicted.glm0.outsample, 1, 0))
+```
+Obtenemos resultados muy parecidos a los anteriores.
+
+Realizamos la curva ROC:
+```{r}
+library(verification)
+prob.glm0.outsample <- predict(cleandata.glm0,cleandata.test,type="response")
+roc.plot(cleandata.test$EstadoPrest == '1', prob.glm0.outsample)
+```
+
+Comparamos los modelos 1 y 2
+```{r}
+prob.glm1.outsample <- predict(cleandata.glm1,cleandata.test,type="response")
+roc.plot(x= cleandata.test$EstadoPrest == '1', 
+         pred=cbind(prob.glm1.outsample,prob.glm0.outsample), 
+         legend=TRUE)$roc.vol
+```
+Y comprobamos que ambos modelos son muy similares, realizando predicciones bastante correctas en ambos casos.
+
+Pr último, comprobamos el valor de probabilidad de corte optimo:
+```{r}
+searchgrid = seq(0.01, 0.99, 0.01)
+
+result = cbind(searchgrid, NA)
+
+cost1 <- function(r, pi){
+  weight1 = 10
+  weight0 = 1
+  c1 = (r==1)&(pi<pcut) 
+  c0 = (r==0)&(pi>pcut) 
+  return(mean(weight1*c1+weight0*c0))
+}
+cleandata.glm0<-glm(EstadoPrest~loanstats.int_rate+loanstats.dti+loanstats.revol_util+
+                      loanstats.dti+loanstats.grade+loanstats.int_rate+
+                      loanstats.revol_util+loanstats.annual_inc+loanstats.total_pymnt+
+                      loanstats.loan_amnt+loanstats.total_rec_int,family=binomial,cleandata.train)
+prob <- predict(cleandata.glm1,type="response")
+for(i in 1:length(searchgrid))
+{
+  pcut <- result[i,1]
+ 
+  result[i,2] <- cost1(cleandata.train$EstadoPrest, prob)
+}
+plot(result, ylab="Cost in Training Set")
+```
+Podemos ver en la grafica que a partir de 0.7 empieza a variar y el error empieza a ser mayor. Podremos considerar como óptimo un 0.6 para nuestro modelo.
+```{r}
+result[which.min(result[,2]),] 
+```
+El minimo punto de corte sería 0.07
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

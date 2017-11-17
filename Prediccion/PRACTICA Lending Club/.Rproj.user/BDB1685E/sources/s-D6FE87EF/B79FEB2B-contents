@@ -1,0 +1,298 @@
+---
+title: "Untitled"
+author: "Alvaro de Prada"
+date: "17/11/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Cargamos los datos; el csv escogido es el comprendido entre los a?os 2007/2011
+# Este dataset tiene un total de 145 variables y 42585 observaciones
+```{r}
+
+creditos<-read.csv("LoanStats3a.csv", skip = 1, header=T, sep=",", dec=".", fill = T)
+
+```
+# Tomamos como variable dependiente loan_status, tal y como viene en el documento, esta variable evalua
+# el estado del prestamo; vamos a estudiarla y cambiarla para poder trabajar con ella
+```{r}
+is.factor(creditos$loan_status) # vemos si es factor o no
+table(creditos$loan_status) # vemos cuantas puntaciones tiene cada una de las variables,
+                  #tras el estudio pasamos a convertir a cero todas las q son poco relevantes.
+creditos<-creditos[creditos$loan_status!="f",]
+creditos<-creditos[creditos$loan_status!="",]
+creditos<-creditos[creditos$loan_status!="Aug-2010",]
+creditos<-creditos[creditos$loan_status!="Dec-2010",]
+creditos<-creditos[creditos$loan_status!="Dec-2011",]
+creditos<-creditos[creditos$loan_status!="Feb-2011",]
+creditos<-creditos[creditos$loan_status!="Jul-2010",]
+creditos<-creditos[creditos$loan_status!="Mar-2011",]
+creditos<-creditos[creditos$loan_status!="May-2011",]
+creditos<-creditos[creditos$loan_status!="Nov-2011",]
+creditos<-creditos[creditos$loan_status!="Oct-2010",]
+creditos<-creditos[creditos$loan_status!="Sep-2011",]
+#todas estas se han tomado porque su valor rspecto del total era minimo y nada significativo, es decir son 1 y 2.
+table(creditos$creditos.loan_status) # eliminamos
+creditos$loan_status = gsub("Does not meet the creditos policy. Status:Charged Off", "Charged Off",creditos$loan_status)
+creditos$loan_status = gsub("Does not meet the creditos policy. Status:Fully Paid", "Fully Paid",creditos$loan_status)
+#hemos eliminado does not meet.....charged off/fully paid
+
+table(creditos$loan_status)
+#como podemos observar solo nos quedan fully paid y charged off
+#nos creamos una nueva columna igaul q creditos$loan_status
+estado_prestamo <- creditos$loan_status
+# convertimos en una binomial la columna denominando 1 para fully paid y 0 para charged off
+table(estado_prestamo)
+estado_prestamo <- factor(estado_prestamo, labels=0:1)
+table(estado_prestamo)
+#como podemos ver se ha convertido en una binomial (0,1)
+is.factor(estado_prestamo)
+
+#Por lo tanto nuestra nueva variable dependiente sera estado_prestamos
+```
+# Tras la lectura del articulo "Evaluating creditos risk...." decidimos utilizar las variables:
+# el grado del creditoso, ratio deuda ingresos, FICO y que parte del creditoso lo emplea para pagar ese u otros creditosos que tenga, que corresponden a los nombres de la tabla:
+# (dti, grade, int_rate, revol_util); Tenemos un total de 4 variables;
+#  creamos un nuevo df que ademas a?adiremos la variable dependiente estado_prestamo
+```{r}
+estudio<-data.frame(estado_prestamo, creditos$dti, creditos$grade, creditos$int_rate, creditos$revol_util, creditos$annual_inc, creditos$total_acc, creditos$loan_amnt, creditos$total_pymnt, creditos$total_rec_int)
+
+```
+# Como podemos ver tenemos que volver hacer lo mismo que hicimos con loan_status con grade, primero vemos que niveles tiene, que relevancia tiene cada uno, limpiamos y por ?ltimo convertimos en factor
+```{r}
+table(estudio$creditos.grade)  # eliminamos los cuatro niveles que tienen cero
+
+# convertimos a factor
+estudio$creditos.grade <- factor(estudio$creditos.grade, labels=1:7)
+table(estudio$creditos.grade)
+```
+#vamos a ver de que tipo son cada una de las diez variables que tengo
+```{r}
+typeof(estudio$estado_prestamo) #integer
+typeof(estudio$creditos.dti) #integer
+typeof(estudio$creditos.grade)  #integer
+typeof(estudio$creditos.int_rate) #integer
+typeof(estudio$creditos.revol_util) #integer
+typeof(estudio$creditos.annual_inc) #integer
+typeof(estudio$creditos.total_acc) #integer
+typeof(estudio$creditos.loan_amnt) #integer
+typeof(estudio$creditos.total_pymnt) #integer
+typeof(estudio$creditos.total_rec_int) #double
+```
+# Convertimos todas las variables a numerico.
+# Para ello, las dos variables que aparecen como % primero le quitaremos el simbolo % para poder operar con ellas, las convertiremos a numeric y las dividiremos por 100
+```{r}
+#quitamos el simbolo %
+estudio$creditos.int_rate = gsub("%", "",estudio$creditos.int_rate)
+head(estudio$creditos.int_rate)
+estudio$creditos.revol_util= gsub("%", "",estudio$creditos.revol_util)
+head(estudio$creditos.revol_util)
+#convertimos a numeric
+estudio$creditos.dti<-as.numeric(paste(estudio$creditos.dti))
+estudio$creditos.int_rate<-as.numeric(paste(estudio$creditos.int_rate))/100
+estudio$creditos.revol_util<-as.numeric(paste(estudio$creditos.revol_util))/100
+estudio$creditos.annual_inc<-as.numeric(paste(estudio$creditos.annual_inc))
+estudio$creditos.total_acc<-as.numeric(paste(estudio$creditos.total_acc))
+estudio$creditos.total_pymnt<-as.numeric(paste(estudio$creditos.total_pymnt))
+
+estudio$creditos.loan_amnt<-as.numeric(paste(estudio$creditos.loan_amnt))
+estudio$creditos.total_rec_int<-as.numeric(paste(estudio$creditos.total_rec_int))
+estudio$estado_prestamo<-as.numeric(paste(estudio$estado_prestamo))
+head(estudio)
+```
+# vemos un summary y eliminamos los Nas
+```{r}
+summary(estudio)
+#el numero de Nas es muy peque?o, por lo que los eliminamos, no hace falta hacer ninguna conversion
+estudio = na.omit(estudio)
+summary(estudio)
+sapply(estudio, class)
+```
+# Una vez realizado todo el trabajo de limpieza de datos y preparacion de nuestro df estudio pasamos a la realizacion del modelo de predicci?n.
+```{r}
+mod01=glm(estado_prestamo~creditos.int_rate+creditos.revol_util+creditos.dti+creditos.int_rate+creditos.revol_util+
+            creditos.annual_inc+creditos.total_acc+creditos.total_pymnt+creditos.loan_amnt+
+            creditos.total_rec_int+creditos.grade,family="binomial",data=estudio)
+summary(mod01)
+```
+#tomamos una muestra aleatoria y preparamos train y test
+```{r}
+set.seed(1234)
+n=nrow(estudio)
+id_train <- sample(1:n , 0.90*n)
+estudio.train = estudio[id_train,]
+estudio.test = estudio[-id_train,]
+```
+#vemos la regresi?n log?stica
+```{r}
+estudio.glm0<-glm(estado_prestamo~creditos.int_rate+creditos.dti+creditos.revol_util+creditos.dti+creditos.grade+
+                    creditos.int_rate+creditos.revol_util+creditos.annual_inc+creditos.total_pymnt+
+                     creditos.loan_amnt+creditos.total_rec_int,family=binomial,estudio.train)
+summary(estudio.glm0)
+```
+#construimos modelo 2 quitando las variables no significativas
+```{r}
+estudio.glm1<-glm(estado_prestamo~creditos.grade+creditos.revol_util+creditos.annual_inc+
+                    creditos.loan_amnt+creditos.total_pymnt+creditos.total_rec_int,
+                  family=binomial,estudio.train)
+summary(estudio.glm1)
+
+```
+#comprobamos los estad?sticos AIC y BIC
+```{r}
+AIC(estudio.glm0)
+AIC(estudio.glm1)
+BIC(estudio.glm0)
+BIC(estudio.glm1)
+# el modelo glm0 es algo mejor que el modelo gml1
+```
+#representamos 
+```{r}
+hist(predict(estudio.glm0))
+hist(predict(estudio.glm0, type = "response"))
+```
+#elegimos la probabilidad de corte
+```{r}
+table(predict(estudio.glm0,type="response") > 0.5)
+table(predict(estudio.glm0,type="response") > 0.3)
+table(predict(estudio.glm0,type="response") > 0.2)
+#nos quedamos con 0.2
+```
+#predecimos dentro de la muestra
+```{r}
+prob.glm0.insample <- predict(estudio.glm0,type="response")
+predicted.glm0.insample <- prob.glm0.insample > 0.2
+predicted.glm0.insample <- as.numeric(predicted.glm0.insample)
+table(estudio.train$estado_prestamo, predicted.glm0.insample, dnn=c("Truth","Predicted"))
+#vemos la tasa de error
+mean(ifelse(estudio.train$estado_prestamo != predicted.glm0.insample, 1, 0))
+```
+#predecimos fuera de la muestra
+```{r}
+prob.glm0.outsample <- predict(estudio.glm0,estudio.test,type="response")
+predicted.glm0.outsample <-  prob.glm0.outsample> 0.2
+predicted.glm0.outsample <- as.numeric(predicted.glm0.outsample)
+table(estudio.test$estado_prestamo, predicted.glm0.outsample, dnn=c("Truth","Predicted"))
+#vemos la tasa de error
+mean(ifelse(estudio.test$estado_prestamo != predicted.glm0.outsample, 1, 0))
+```
+
+#curva ROC
+```{r}
+library(verification)
+prob.glm0.outsample <- predict(estudio.glm0,estudio.test,type="response")
+roc.plot(estudio.test$estado_prestamo == '1', prob.glm0.outsample)
+#comparamos modelos
+prob.glm1.outsample <- predict(estudio.glm1,estudio.test,type="response")
+roc.plot(x= estudio.test$estado_prestamo == '1', pred=cbind(prob.glm1.outsample,prob.glm0.outsample), legend=TRUE)$roc.vol
+#vemos que los modelos son muy parejos; los modelos predicen bastante bien, estoy conforme con el resultado, se podr?a mejorar pero est? muy cercano al ?ptimo.
+```
+#valor de probabilidad de corte optimo
+```{r}
+
+searchgrid = seq(0.01, 0.99, 0.01)
+
+result = cbind(searchgrid, NA)
+
+cost1 <- function(r, pi){
+  weight1 = 10
+  weight0 = 1
+  c1 = (r==1)&(pi<pcut) 
+  c0 = (r==0)&(pi>pcut) 
+  return(mean(weight1*c1+weight0*c0))
+}
+estudio.glm0<-glm(estado_prestamo~creditos.int_rate+creditos.dti+creditos.revol_util+creditos.dti+creditos.grade+
+                    creditos.int_rate+creditos.revol_util+creditos.annual_inc+creditos.total_pymnt+
+                     creditos.loan_amnt+creditos.total_rec_int,family=binomial,estudio.train); 
+prob <- predict(estudio.glm1,type="response")
+for(i in 1:length(searchgrid))
+{
+  pcut <- result[i,1]
+ 
+  result[i,2] <- cost1(estudio.train$estado_prestamo, prob)
+}
+plot(result, ylab="Cost in Training Set")
+# De la gr?fica podemos extraer que hasta 0.8 no cambia mucho, a partir de ah? nos empezaremos a equivocar mucho, por lo tanto 0.5 estar?a bien paranuestro modelo.
+result[which.min(result[,2]),] # el minimo punto de corte ser?a 0.08
+```
+
+#######################--------########################
+
+
+
+A continuación formateamos la tabla inicial quedándonos con aquellos valores que teníian el campo "loan_status" correcto, incluyendo la columna  EstadoPrest que indica si el crédito se ha pagado(1), o no(0). En esta tabla nos quedaremos únicamente con aquellas variables que consideramos significativas:
+```{r}
+ EstadoPrest <- as.data.frame( EstadoPrest)
+loanStats2 <- data.frame( EstadoPrest, loanstats[,c("id", "dti", "grade", "int_rate", "revol_util",  "annual_inc", "total_acc",  "loan_amnt",  "total_pymnt",  "total_rec_int")])
+```
+
+
+
+
+
+****Empiezo a replicar los apuntes:
+```{r}
+summary(loanStats2)
+#el numero de Nas es muy peque?o, por lo que los eliminamos, no hace falta hacer ninguna conversion
+loanStats2 = na.omit(loanStats2)
+```
+
+```{r}
+set.seed(1234)
+n=nrow(loanStats2)
+id_train <- sample(1:n , 0.90*n)
+credit.train = loanStats2[id_train,]
+credit.test = loanStats2[-id_train,]
+```
+```{r}
+nrow(credit.train)
+```
+```{r}
+ncol(credit.train)
+```
+```{r}
+colnames(credit.train)
+```
+
+
+
+
+
+```{r}
+credit.glm0<-glm( EstadoPrest~ EstadoPrest + id + dti + grade + int_rate + revol_util + annual_inc + total_acc + loan_amnt + total_pymnt + total_rec_int ,family=binomial,data = loanStats2);  
+```
+```{r}
+summary(credit.glm0)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,12 @@
+"0","EstadoPrest<-loanstats$loan_status"
+"0","table(EstadoPrest)"
+"1","EstadoPrest
+"
+"1","Charged Off "
+"1"," Fully Paid "
+"1","
+"
+"1","       6431 "
+"1","      36104 "
+"1","
+"

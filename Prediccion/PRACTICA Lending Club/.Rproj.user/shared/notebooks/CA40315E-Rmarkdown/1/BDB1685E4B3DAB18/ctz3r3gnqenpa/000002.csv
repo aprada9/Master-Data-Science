@@ -1,0 +1,6 @@
+"0","set.seed(1234)"
+"0","n=nrow(loanStats1)"
+"0","id_train <- sample(1:n , 0.90*n)"
+"0","id_train1 <- sample(1:n , 0.30*n)"
+"0","credit.train = loanStats1[id_train,]"
+"0","credit.test = loanStats1[-id_train,]"

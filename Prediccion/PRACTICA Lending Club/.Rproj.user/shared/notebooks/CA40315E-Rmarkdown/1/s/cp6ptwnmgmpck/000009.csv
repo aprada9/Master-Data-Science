@@ -1,0 +1,5 @@
+"0","library(verification)"
+"0","library(ROCR)"
+"0","prob.glm0.outsample <- predict(cleandata.glm0,cleandata.test,type=""response"")"
+"0","roc.plot(cleandata.test$EstadoPrest == '1', prob.glm0.outsample, colorize=TRUE)"
+"2","Large amount of unique predictions used as thresholds. Consider specifying thresholds."

@@ -1,0 +1,1 @@
+"0","credit<-read.csv(""LoanStats3a.csv"", skip = 1, header=T, sep="","", dec=""."", fill = T)"

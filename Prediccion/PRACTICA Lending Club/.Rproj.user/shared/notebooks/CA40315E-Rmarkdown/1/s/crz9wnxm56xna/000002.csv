@@ -1,0 +1,7 @@
+"0","class(EstadoPrest)"
+"1","[1]"
+"1"," ""character"""
+"1","
+"
+"0","EstadoPrest <- factor(EstadoPrest, labels=0:1)"
+"0","plot( EstadoPrest)"
