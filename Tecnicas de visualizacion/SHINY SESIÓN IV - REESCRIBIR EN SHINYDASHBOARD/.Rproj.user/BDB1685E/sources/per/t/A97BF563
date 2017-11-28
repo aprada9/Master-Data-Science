@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1511613701189.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3511874215",
+    "id" : "A97BF563",
+    "lastKnownWriteTime" : 1511615282,
+    "last_content_update" : 1511615282247,
+    "path" : "~/Documents/CUNEF/Visualizacion/Practicas Vis/Entregas/SHINY SESIÓN IV - REESCRIBIR EN SHINYDASHBOARD/Dashboard/server.R",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "61,4",
+        "scrollLine" : "0"
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
