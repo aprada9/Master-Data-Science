@@ -1,0 +1,61 @@
+---
+title: "2 - ALEATORIA"
+author: "Jorge Fuertes Argüello"
+date: "17 de enero de 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### INSTALAMOS Y CARGAMOS LIBRERÍAS.
+
+```{r}
+# install.packages("ROCR")
+library(ROCR)
+# install.packages("e1071")
+library(e1071)
+# install.packages("caret")
+library(caret)
+# install.packages("xgboost")
+library(xgboost)
+# install.packages("randomForest")
+library(randomForest)
+# install.packages("quantmod")
+library(quantmod)
+```
+
+### 2- ALEATORIA
+
+Una vez realizada la limpieza de los datos, de nuestra muestra de training y nuestra muestra de test, queremos realizar un primer análisis de una forma muy sencilla.
+
+Realizaremos una muestra de test con una variable nueva denominada "Probability" en la que estableceremos unos y ceros de forma aleatoria para las 101503 observaciones que tiene nuestro credit_test.
+
+```{r}
+Probability <- sample(x= c(0,1), size=nrow(credit_test), replace = TRUE)
+```
+
+Una vez creada la nueva variable "Probability", vamos a crear un nuevo dataframe con dicha variable únicamente para que posteriormente se pueda extraer en formato csv.
+
+```{r}
+sample <- data.frame(Probability)
+write.csv(sample, "entry1SAMPLE.csv")
+```
+
+Una vez extraído en formato csv, abriremos el documento en nuestro ordenador con el bloc de notas para introducir el nombre de la primera columna como "Id", tal y como nos exige la competición "Give me some credit" y lo subiremos a kaggle para ver nuestra puntuación con este test set aleatorio. 
+
+La puntuación calificada por Kaggle con dicho test set es de 0.481581, dato que entendemos totalmente razonable debido a que no hemos llevado a cabo ningún análisis en profundidad, únicamente establecidos unos y ceros de forma aleatoria. Por lo que nuestro logaritmo aleatorio nos otorga aproximadamente un 48,16% de acierto.
+
+
+
+
+
+
+
+
+
+
+
+
+

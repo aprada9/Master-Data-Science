@@ -1,0 +1,118 @@
+---
+title: "8 - CURVAS ROC"
+author: "Jorge Fuertes Argüello"
+date: "17 de enero de 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### INSTALAMOS Y CARGAMOS LIBRERÍAS.
+
+```{r}
+# install.packages("pROC")
+library(pROC)
+# install.packages("ROCR")
+library(ROCR)
+# install.packages("e1071")
+library(e1071)
+# install.packages("caret")
+library(caret)
+# install.packages("xgboost")
+library(xgboost)
+# install.packages("randomForest")
+library(randomForest)
+# install.packages("quantmod")
+library(quantmod)
+```
+
+### 7-Comparaci�n de resultados: Curvas ROC.
+
+Curva ROC de la regresión logística:
+```{r}
+rocRL <- prediction(predict(glm, ttest), ttest$SeriousDlqin2yrs)
+
+AUCRL <- performance(rocRL, "auc") 
+AUCRL@y.name ## [1] "Area under the ROC curve" 
+AUCRL@y.values ## [[1]] ## [1] 0.6959401
+perfRL <- performance(rocRL, "tpr", "fpr") 
+plot(perfRL, colorize = TRUE) # mostramos colores seg?n el punto de corte # Añadimos la recta y=x que ser?a la correspondiente al peor clasificador abline(a = 0, b = 1) # a?adimos el valor del ?rea bajo la curva
+text(0.4, 0.6, paste(AUCRL@y.name, "\n", round(unlist(AUCRL@y.values), 3)), cex = 0.7)
+```
+
+
+Curva ROC del Support Vector    Machine:
+```{r}
+rocSVM <- prediction(predict(svm_model, ttest), ttest$SeriousDlqin2yrs)
+
+AUCSVM <- performance(rocSVM, "auc") 
+AUCSVM@y.name  
+AUCSVM@y.values 
+perfSVM <- performance(rocSVM, "tpr", "fpr") 
+plot(perfSVM, colorize = TRUE) 
+text(0.4, 0.6, paste(AUCSVM@y.name, "\n", round(unlist(AUCSVM@y.values), 3)), cex = 0.7)
+```
+
+
+Curva ROC del RandomForest:
+```{r}
+rocRF <- prediction(predict(randomforest_1, ttest), ttest$SeriousDlqin2yrs)
+
+AUCRF <- performance(rocRF, "auc") 
+AUCRF@y.name 
+AUCRF@y.values
+perfRF <- performance(rocRF, "tpr", "fpr") 
+plot(perfRF, colorize = TRUE) 
+text(0.4, 0.6, paste(AUCRF@y.name, "\n", round(unlist(AUCRF@y.values), 3)), cex = 0.7)
+```
+
+
+Curva ROC del XGBoost:
+```{r}
+rocXGB <- prediction(predict(modeloxg2, xgtest2), ttest$SeriousDlqin2yrs)
+
+AUCXGB <- performance(rocXGB, "auc") 
+AUCXGB@y.name 
+AUCXGB@y.values 
+perfXGB <- performance(rocXGB, "tpr", "fpr") 
+plot(perfXGB, colorize = TRUE) 
+text(0.4, 0.6, paste(AUCXGB@y.name, "\n", round(unlist(AUCXGB@y.values), 3)), cex = 0.7)
+```
+
+
+RL vs. SVM vs. RF vs. XGB:
+```{r}
+AUCRL <- performance(rocRL, "auc")
+perfRL <- performance(rocRL, "tpr", "fpr")
+plot(perfRL, colorize = TRUE)
+text(0.4, 0.6, paste(AUCRL@y.name, "\n", round(unlist(AUCRL@y.values), 3)),
+     cex = 0.7,
+     col = "blue")
+
+AUCSVM <- performance(rocSVM, "auc")
+perfSVM <- performance(rocSVM, "tpr", "fpr") 
+plot(perfSVM, add = TRUE, colorize = FALSE)
+text(0.4, 0.6, paste(AUCSVM@y.name, "\n", round(unlist(AUCSVM@y.values), 3)),
+     cex = 0.7,
+     col = "black",
+     pos = 3 )
+
+AUCRF <- performance(rocRF, "auc")
+perfRF <- performance(rocRF, "tpr", "fpr")
+plot(perfRF, add = TRUE, colorize = TRUE) 
+text(0.4, 0.6, paste(AUCRF@y.name, "\n", round(unlist(AUCRF@y.values), 3)),
+     cex = 0.7,
+     col = "yellow",
+     pos = 4)
+
+AUCXGB <- performance(rocXGB, "auc")
+perfXGB <- performance(rocXGB, "tpr", "fpr") 
+plot(perfXGB, add = TRUE, colorize = TRUE) 
+text(0.4, 0.6, paste(AUCXGB@y.name, "\n", round(unlist(AUCXGB@y.values), 3)),
+     cex = 0.7,
+     col = "green")
+```
+
+

@@ -1,0 +1,618 @@
+---
+title: "Give me some credit"
+author: "Jorge Fuertes Argüello"
+date: "8 de enero de 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+validacion cruzada (para una serie temporal no vale): se coge una sola muestra de train (train, por ejemplo del 70%), se entrena esta muestra con cada uno de los algoritmos y para validar se cogen diferentes test (por ejemplo de un 12% cada uno) se hace la media de los resultados de cada uno de los algoritmos y el mejor resultado (mayor) es el que se usa.
+Con 500 árboles sirve, suficiente.
+1-INTRODUCCION
+contar el problema de give me some credit
+2-TRATAMIENTO Y LIMPIEZA DE DATOS.
+3-ALEATORIA (CON DATOS DE CEROS Y UNOS ESCRITOS AL AZAR, lo que hicimos en clase)
+4-LOGISTICA
+5-SUPPORT VECTOR MACHINE
+6-RANDOM FOREST: separar en una muestra de 80% y otra de 20%, luego reentrenar sobretodo el conjunto, hacer el predict del test y ese es el que se sube a kaggle.
+7-XGBOOST
+8-COMPARACIÓN DE RESULTADOS (CURVA ROC)
+9-CONCLUSIONES
+
+### 1- INSTALAMOS Y CARGAMOS LAS LIBRERÍAS.
+```{r}
+# install.packages("ROCR")
+library(ROCR)
+# install.packages("e1071")
+library(e1071)
+# install.packages("caret")
+library(caret)
+# install.packages("xgboost")
+library(xgboost)
+# install.packages("randomForest")
+library(randomForest)
+# install.packages("quantmod")
+library(quantmod)
+```
+
+### 1- CARGA Y LIMPIEZA DE DATOS.
+
+En primer lugar, antes de realizar cualquier tipo de análisis tenemos que cargar los datos y tratarlos, es decir, llevar a cabo un estudio para ver si existen outliers, valores perdidos (NAs) y posteriormente ver cuál es la mejor manera de tratarlos.
+
+#### MUESTRA DE TRAINING
+
+Comenzamos cargando la muestra de training y observando el dataset:
+
+```{r}
+credit_train <- read.csv("cs-training.csv")
+# View(credit_train)
+```
+
+Una vez observada, lo primero que podemos apreciar es que existe una primera variable llamada "x" que entendemos como la columna que nos indica la posición de cada crédito (1,2,3,4...), dado que en R se ejecuta automáticamente esta columna vamor a proceder a eliminarla:
+```{r}
+credit_train <- credit_train[,-1]
+```
+
+Es muy importante saber de que clase (factor, numérica, entera...etc) es cada variable de nuestro dataset para poder realizar un estudio correcto de los datos ya que, en muchas ocasiones, es necesario que las variables sean de un tipo de clase específico para continuar, por lo que vamos a comprobarlo:
+```{r}
+str(credit_train)
+```
+
+Haciendo un "summary" de nuestro dataset podemos ver un resumen de cada una de la variables, indicándose en el mismo, el mínimo, el máximo, primer y tercer cuartil, la media, la mediana y, por último, si existen valores perdidos (NA) y cuántos.
+```{r}
+summary(credit_train)
+```
+
+Podemos comprobar que las únicas variables que tienen valores perdidos son "MonthlyIncome", es decir, ingresos mensuales del individuo y "NumberOfDependents", que representa el número de familiares dependientes del prestatario (sin incluirse él mismo).
+
+Otra forma bastante útil que hemos utilizado para ver de forma correcta únicamente los valores perdidos de cada variable es mediante esta función, que posteriormente se la aplicaremos al dataset. Es un contador, es decir, indica que cada vez que se encuentre en el dataset con un "NA" irá sumando 1 a "n", la cual comienza con un valor igual a 0:
+
+```{r}
+na <- function(x) { 
+  n <- 0 
+  for (i in 1:length(x)) { 
+    if (is.na(x[i])){
+      n <- n + 1 
+      }
+    }
+  return(n) 
+  } 
+sapply(credit_train, na)
+```
+
+Vamos a ver la cantidad de "No defaults" / "Defaults" que existen en nuestro training set y los visualizamos:
+```{r}
+sum(credit_train$SeriousDlqin2yrs==0)
+sum(credit_train$SeriousDlqin2yrs==1)
+plot(as.factor(credit_train$SeriousDlqin2yrs))
+```
+
+
+Para llevar a cabo el tratamiento de los valores perdidos de nuestra muestra de train y que, porteriormente, podamos utilizarla sin problema en nuestros modelos, hemos realizado distintas versiones:
+
+- En primer lugar, hemos probado realizando directamente un na.omit, es decir, eliminando todas aquellas observaciones que contengan un valor perdido.
+- En segundo lugar, con el fin de intentar mejorar nuestros resultados hemos probado a sustituir por cero todos los valores perdidos.
+- En tercer lugar, ya que no ha sido muy eficiente igualar a cero nuestros NAs, los hemos sutituído por la media de la variable a la que pertenecen (MonthlyIncome o NumberOfDependents).
+- Por último y con lo que mejores resultados hemos obtenido, ha sido mediante la sustitución de los valores perdidos por la mediana de la variable a la que pertenecen, por lo que quedaría de esta manera:
+
+```{r}
+credit_train$MonthlyIncome[is.na(credit_train$MonthlyIncome)] <- round(median(credit_train$MonthlyIncome, na.rm = TRUE))
+credit_train$NumberOfDependents[is.na(credit_train$NumberOfDependents)] <- round(median(credit_train$NumberOfDependents, na.rm = TRUE))
+# View(credit_train)
+```
+
+
+#### MUESTRA DE TEST
+
+Para poder predecir la muestra de test utilizando el modelo realizado con la muestra de train, es necesario cargar los datos de esta muestra:
+
+```{r}
+credit_test <- read.csv("cs-test.csv")
+```
+
+Observamos que, al igual que con la muestra de entrenamiento, eliminaremos la primera columna correspondiente a la variable "x"
+```{r}
+credit_test <- credit_test[,-1]
+```
+
+Realizamos un summary y, podemos ver que guardan una pequeña relación con la muestra de entrenamiento:
+```{r}
+summary(credit_test)
+```
+
+Utilizando la función que hemos creado vamos a ver los valores perdidos de cada variable:
+```{r}
+sapply(credit_test, na)
+```
+
+Hemos realizado el mismo proceso que el utilizado en la muestra de entrenamiento para el tratamiento de los valores perdidos: sustituimos por la mediana.
+
+```{r}
+credit_test$MonthlyIncome[is.na(credit_test$MonthlyIncome)] <- round(median(credit_test$MonthlyIncome, na.rm = TRUE))
+credit_test$NumberOfDependents[is.na(credit_test$NumberOfDependents)] <- round(median(credit_test$NumberOfDependents, na.rm = TRUE))
+```
+
+
+### 2- ALEATORIA
+
+Una vez realizada la limpieza de los datos, de nuestra muestra de training y nuestra muestra de test, queremos realizar un primer análisis de una forma muy sencilla.
+
+Realizaremos una muestra de test con una variable nueva denominada "Probability" en la que estableceremos unos y ceros de forma aleatoria para las 101503 observaciones que tiene nuestro credit_test.
+
+```{r}
+Probability <- sample(x= c(0,1), size=nrow(credit_test), replace = TRUE)
+```
+
+Una vez creada la nueva variable "Probability", vamos a crear un nuevo dataframe con dicha variable únicamente para que posteriormente se pueda extraer en formato csv.
+
+```{r}
+sample <- data.frame(Probability)
+write.csv(sample, "entry1SAMPLE.csv")
+```
+
+Una vez extraído en formato csv, abriremos el documento en nuestro ordenador con el bloc de notas para introducir el nombre de la primera columna como "Id", tal y como nos exige la competición "Give me some credit" y lo subiremos a kaggle para ver nuestra puntuación con este test set aleatorio. 
+
+La puntuación calificada por Kaggle con dicho test set es de 0.481581, dato que entendemos totalmente razonable debido a que no hemos llevado a cabo ningún análisis en profundidad, únicamente establecidos unos y ceros de forma aleatoria. Por lo que nuestro logaritmo aleatorio nos otorga aproximadamente un 48,16% de acierto.
+
+
+### 3- REGRESIÓN LOGÍSTICA
+
+Establecemos la semilla:
+```{r}
+set.seed(1234)
+```
+
+Escogemos muestras de train y test del credit_train, en un primer momento, distribuiremos las muestras en un 80% para la muestra de entrenamiento y un 20% para la muestra de test:
+```{r}
+credit_trainT <- sample(nrow(credit_train), 0.8*nrow(credit_train)) 
+ttrain <- credit_train[credit_trainT,]
+ttest <- credit_train[-credit_trainT,]
+```
+
+Una vez separada la muestra grande de entrenamiento en pequeñas muestras: training (80%) y test (20%), vamos a establecer un modelo de regresión logística (glm) incluyendo todas las variables para comprobar cuales de ellas son más significativas:
+```{r}
+glm <- glm(data=ttrain, SeriousDlqin2yrs~., family = "binomial")
+summary(glm)
+```
+
+Como podemos comprobar en el summary de nuestro primer modelo, la variable "RevolvingUtilizationOfUnsecuredLines" no es significativa para explicar nuestra variable explicada "SeriousDlqin2yrs", por lo que vamos a probar a eliminarla del modelo para ver si finalmente nos mejora la predicción en Kaggle:
+```{r}
+# glm1 <- glm(data=ttrain, SeriousDlqin2yrs~age + NumberOfTime30.59DaysPastDueNotWorse + DebtRatio + MonthlyIncome + NumberOfOpenCreditLinesAndLoans + NumberOfTimes90DaysLate + NumberRealEstateLoansOrLines + NumberOfTime60.89DaysPastDueNotWorse + NumberOfDependents, family = "binomial")
+# summary(glm1)
+```
+Hemos dejado comentada esta última regresión debido a que finalmente en Kaggle la que mejor resultado nos ha ofrecido es la primera incluyendo todas las variables.
+
+Llevamos a cabo la predicción del modelo realizado para el 20% correspondiente a la muestra de test:
+```{r}
+glm0 <- predict(glm, newdata = ttest, type = 'response')
+
+glm0[is.na(glm0)]<- 0
+ 
+ttest$Probability<- glm0
+```
+
+Establecemos la matriz de confusión para ver los falsos positivos, falsos negativos, verdaderos positivos y verdaderos negativos que nos ha dado nuestro modelo.
+```{r}
+confusionMatrix(data = ttest$SeriousDlqin2yrs, round(glm0))
+```
+
+Nuestro modelo ha determinado 27897 no impagados que realmente eran no impagados y 67 no impagados que realmente eran impagados, así como 1945 impagados que realmente eran no impagados y 91 impagados que realmente eran impagados.
+
+Como conclusión el porcentaje de acierto del modelo es de 93.29% y de no acierto es de 6.71%.
+
+#### Muestra de entrenamiento completa (credit_train):
+
+Esta vez vamos a realizar el mismo proceso pero utilizando la muestra de entrenamiento completa y probando nuestro modelo con la muestra de test (credit_test):
+
+```{r}
+glm2 <- glm(data=credit_train, SeriousDlqin2yrs~., family = "binomial")
+summary(glm2)
+```
+
+Podemos ver que nos vuelve a salir no significativa la variable "RevolvingUtilizationOfUnsecuredLines" por lo que vamos a probar un nuevo modelo sin ella:
+
+```{r}
+# glm3 <- glm(data=ttrain, SeriousDlqin2yrs~ age + NumberOfTime30.59DaysPastDueNotWorse + DebtRatio + MonthlyIncome + NumberOfOpenCreditLinesAndLoans + NumberOfTimes90DaysLate + NumberRealEstateLoansOrLines + NumberOfTime60.89DaysPastDueNotWorse + NumberOfDependents, family = "binomial")
+# summary(glm3)
+```
+
+Nos sucede lo mismo que anteriormente por lo que continuaremos con el modelo compuesto por todas las variables:
+
+```{r}
+predRL <- predict(glm2, newdata = credit_test, type = 'response')
+
+predRL[is.na(predRL)]<- 0
+ 
+credit_test$Probability<- predRL
+```
+
+```{r}
+# confusionMatrix(data = credit_test$SeriousDlqin2yrs, round(glm4))
+```
+
+```{r}
+entry1 <- data.frame(Probability = credit_test$Probability)
+# sum(entry1==1)
+# sum(entry1==0)
+write.csv(entry1, "entry2GLM.csv")
+```
+
+Una vez obtenidos los resultados vamos a elaborar un csv de los mismos para proceder a la observación del resultado final en Kaggle. Una vez subido a kaggle el resultado obtenido de nuestro modelo de regresión logística es de 0.703114, buen resultado para la logística mejorándose considerablemente respecto a la muestra aleatoria de unos y ceros (lógicamente).
+
+
+### 4- SUPPORT VECTOR MACHINE
+
+El análisis SVM consiste en establecer una línea que nos separe de la mejor manera posible nuestros datos mediante soportes (support) que son aquellos líneas imaginarias que determinan la anchura del margen que hay desde la línea hasta los datos (puntos visualmente).
+
+En la fórmula la C representa un parámetro de regularización:
+
+Una C pequeña en nuestra fórmula permite que las restricciones se ignoren fácilmente (gran margen), mientras que una C grande permite que las restricciones sean difíciles de ignorar (estrecho margen) y si C es igual a infinito el margen es duro ya que se imponen todas las restricciones.
+
+Los Kernels permiten mapear los datos en un alto espacio de características dimensionales para aumentar
+el poder computacional de las máquinas lineales.
+
+Establecemos el modelo de SVM para nuestra muestra de entrenamiento (ttrain) del dataset credit_train, establecida como un 80% en el modelo de regresión logística:
+```{r}
+svm_model <- svm(ttrain$SeriousDlqin2yrs~.,
+                 data = ttrain,
+                 kernel = "linear", 
+                 cost = 1)
+```
+
+Para poder realizar el siguiente SVM con kernel "radial", y método "C-classification", es necesario que nuestra variable a explicar ("SeriousDlqin2yrs") sea de clase "fator":
+```{r}
+# ttrain$SeriousDlqin2yrs <- as.factor(ttrain$SeriousDlqin2yrs)
+# svm_model <- svm(ttrain$SeriousDlqin2yrs~.,
+#                  data = ttrain, 
+#                  method = "C-classification",
+#                  kernel = "radial",
+#                  cost = 1,
+#                  gamma = 0.25)
+```
+
+Tras llegar a una comparación de ambos SVM realizados anteriormente, el que mejor solución nos ofrece es el primero, pero antes de nada, vamos a realizar exactamente lo mismo con la muestra completa de entrenamiento y de test.
+
+```{r}
+predSVM <- round(predict(svm_model, ttest))
+head(predSVM)
+```
+
+Construimos la matriz de confusión:
+```{r}
+confusionMatrix(predSVM, ttest$SeriousDlqin2yrs)
+```
+
+#### Muestra de entrenamiento completa (credit_train):
+
+Esta vez vamos a realizar el mismo proceso pero utilizando la muestra de entrenamiento completa y probando nuestro modelo con la muestra de test (credit_test):
+```{r}
+svm_model1 <- svm(credit_train$SeriousDlqin2yrs~.,
+                  data = credit_train,
+                  kernel = "linear", 
+                  cost = 1)
+```
+
+```{r}
+# credit_train$SeriousDlqin2yrs <- as.factor(credit_train$SeriousDlqin2yrs)
+# svm_model2 <- svm(credit_train$SeriousDlqin2yrs~.,
+#                   data = credit_train,
+#                   method = "C-classification",
+#                   kernel = "radial",
+#                   cost = 1,
+#                   gamma = 0.25)
+```
+
+Una vez comprobados los resultados de ambos análisis SVM en Kaggle, el que mejor resultado nos ha dado es el primero por lo que vamos a dejar comentado el segundo.
+
+```{r}
+predSVM1 <- predict(svm_model1, credit_test[,-1])
+head(predSVM1)
+```
+
+```{r}
+entrySVM <- data.frame(Probability=predSVM1)
+write.csv(entrySVM, "entry3SVM.csv")
+```
+
+Vamos a elaborar un csv de los mismos para proceder a la observación del resultado final en Kaggle. Una vez subido a kaggle el resultado obtenido de nuestro análisis Support Vector Machine es de 0.708573, por lo que hemos mejorado ligeramente nuestros resultados con respecto al modelo de regresión logística.
+
+
+### 5- RANDOM FOREST
+
+En el modelo de Random forest (de tipo bagging), para la separación de nodos, se utilizan un número de variables que se especifican con el parámetro "mtry", las cuales se escogen de manera aleatoria entre las que están en el dataset. En cada nodo, de estas variables aleatorias el modelo selecciona la que mejor discrimina el resultado y va realizando un árbol hasta completarlo. Este proceso se realiza tantas veces como "ntree" (número de árboles) se hayan indicado y, cada árbol al seleccionarse aleatoriamente las variables, va a tener una solución diferente al resto de árboles.
+
+Una vez completado este proceso y cuando el modelo ya tiene todos los árboles de decisión completados, realiza una "votación" para ver cuales son los mejores, y el que más se haya votado es el que se establece como clasificación final cuando recibe una sola observación.
+
+En primer lugar construiremos nuestro modelo random forest utilizando la muestra de entrenamiento del 80% de la gran muestra de entrenamiento (credit_train). Para ello vamos a establecer que las variables que se escojan aleatoriamente para la separación de nodos sean 3 y que nuestro modelo realice 500 árboles:
+```{r}
+randomforest_1 <-randomForest(ttrain, 
+                              ttrain$SeriousDlqin2yrs, 
+                              mtry=3, 
+                              ntree=500, 
+                              keep.forest=TRUE,
+                              importance=TRUE, 
+                              do.trace = TRUE)
+```
+
+Predecimos con la parte de test, es decir, el 20% del trainning set:
+```{r}
+predRF <- round(predict(randomforest_1, ttest))
+head(predRF)
+```
+
+Construimos la matriz de confusión:
+```{r}
+confusionMatrix(predRF, ttest$SeriousDlqin2yrs)
+```
+
+Parece que el nivel de accuracy es muy bueno y la matriz de confusión nos da perfecta sin ningún tipo de errores.
+
+#### Muestra de entrenamiento completa (credit_train):
+
+Una vez observados los resultados con las muestras más pequeñas, vamos a construir el RandomForest con todo el training set, indicando exactamente los mismos parámetros indicados anteriormente:
+
+```{r}
+randomforest_2 <-randomForest(credit_train[,-1], 
+                              credit_train$SeriousDlqin2yrs,
+                              mtry=3,
+                              ntree=500, 
+                              keep.forest=TRUE, 
+                              importance=TRUE, 
+                              do.trace = TRUE)
+```
+
+Hacemos la prediccion finalmente con la muestra de test de 101503 observaciones:
+```{r}
+predRF2 <- predict(randomforest_2, credit_test[,-1])
+head(predRF2)
+```
+
+```{r}
+entry2 <- data.frame(Probability=predRF2)
+write.csv(entry2, "entry4RF.csv")
+```
+
+Tras convertirlo a csv y subirlo a Kaggle hemos conseguido un resultado de nuestro análisis randomForest de 0.852123, por lo que, de momento es el mejor resultado que hemos obtenido superando al análisis de regresión logística y al Suppot Vector Machine.
+
+
+### 6- XGBOOST
+
+El análisis de XGBoost, actualmente muy utilizado, se llevan a cabo distintos modelos estableciendo un peso diferente para cada uno, es parecido al random forest, aunque este algoritmo es de tipo boosting, es decir, los árboles reforzados (boosted trees) se construyen secuencialmente y, los resultados de cada árbol van a influir en el siguiente.
+
+A diferencia del RandomForest, tiene una mejor precisión con menos árboles y si los datos son ruidosos muestra una mayor varianza. Sin embargo, en el RandomForest existen menos problemas con el overfitting (sobreajuste), es más facil de paralelizar y muestra una baja varianza.
+
+Previo a realizarlo con todo el dataset "credit_train", vamos a realizar el modelo con el ttrain (80%) y el ttest (20%):
+
+```{r}
+xgtrain2 <- as.matrix(ttrain[,-1])
+xglabel2 <- as.matrix(ttrain[,1])
+```
+
+Realizaremos el mismo proceso con la muestra de test (credit_test):
+```{r}
+xgtest2 <- as.matrix(ttest[,-1])
+xgttest2 <- as.matrix(ttest[,1])
+```
+
+Observamos de que clase es cada variable en la matriz xgtrain:
+```{r}
+str(xgtrain2)
+```
+
+Tras realizar diferentes pruebas y búsquedas, hemos determinado una función de cross validation para el análisis XGBoost en el que nos va a indicar los train-error y test-error de cada una de las iteraciones que nosotros indiquemos al algoritmo. Una vez probado con hasta 800 iteraciones (nrounds), vamos a intentar determinar cuál es el número óptimo de iteraciones:
+```{r}
+dtrain2 <- xgb.DMatrix(data = xgtrain2, label = xglabel2) 
+dtest2 <- xgb.DMatrix(data = xgtest2, label= xgttest2)
+```
+
+```{r}
+params <- list(booster = "gbtree", 
+               objective = "binary:logistic",
+               eta=0.3,
+               gamma=0,
+               max_depth=6,
+               min_child_weight=1, 
+               subsample=1, 
+               colsample_bytree=1)
+
+
+xgbcv <- xgb.cv(params = params,
+                data = dtrain,
+                nrounds = 100,
+                nfold = 5, 
+                showsd = T, 
+                stratified = T, 
+                print.every_n = 10, 
+                early_stop_round = 20, 
+                maximize = F)
+```
+
+Construimos el modelo:
+```{r}
+modeloxg2 <- xgboost(data = xgtrain2,
+                    label = xglabel2,
+                    nrounds = 15, 
+                    objective = "binary:logistic")
+```
+
+Realizamos la predicción sobre la matriz de test en la que se encuentran todas las variables menos la primera ya que está compuesta de todos NAs:
+```{r}
+xgprediccion2 <- predict(modeloxg2, xgtest2)
+```
+
+Matriz de confusión:
+```{r}
+confusionMatrix(round(xgprediccion2), ttest$SeriousDlqin2yrs)
+```
+
+#### Muestra de entrenamiento completa (credit_train):
+
+Primero, vamos a convertir a matriz nuestros datos sin la primera columna, es decir, todas las variables menos la variable a explicar por el modelo ("SeriousDlqin2yrs") y por otro lado otra matriz únicamente con los datos de esta variable:
+```{r}
+xgtrain <- as.matrix(credit_train[,-1])
+xglabel <- as.matrix(credit_train[,1])
+```
+
+Realizaremos el mismo proceso con la muestra de test (credit_test):
+```{r}
+xgtest1 <- as.matrix(credit_test[,-1])
+xgttest1 <- as.matrix(credit_test[,1])
+```
+
+Observamos de que clase es cada variable en la matriz xgtrain:
+```{r}
+str(xgtrain)
+```
+
+Tras realizar diferentes pruebas y búsquedas, hemos determinado una función de cross validation para el análisis XGBoost en el que nos va a indicar los train-error y test-error de cada una de las iteraciones que nosotros indiquemos al algoritmo. Una vez probado con hasta 800 iteraciones (nrounds), vamos a intentar determinar cuál es el número óptimo de iteraciones:
+```{r}
+dtrain <- xgb.DMatrix(data = xgtrain, label = xglabel) 
+dtest <- xgb.DMatrix(data = xgtest1, label= xgttest1)
+
+params <- list(booster = "gbtree", 
+               objective = "binary:logistic",
+               eta=0.3,
+               gamma=0,
+               max_depth=6,
+               min_child_weight=1, 
+               subsample=1, 
+               colsample_bytree=1)
+
+
+xgbcv <- xgb.cv(params = params,
+                data = dtrain,
+                nrounds = 800,
+                nfold = 5, 
+                showsd = T, 
+                stratified = T, 
+                print.every_n = 10, 
+                early_stop_round = 20, 
+                maximize = F)
+```
+
+Mediante una observación manual hemos podido llegar a la conclusión de que la iteración que menos error nos proporciona es la iteración número 15, por lo que la escogeremos como número de iteraciones (nrounds) en nuestro modelo XGBoost:
+
+```{r}
+modeloxg <- xgboost(data = xgtrain,
+                    label = xglabel,
+                    nrounds = 15, 
+                    objective = "binary:logistic")
+```
+
+Realizamos la predicción sobre la matriz de test en la que se encuentran todas las variables menos la primera ya que está compuesta de todos NAs:
+```{r}
+xgprediccion <- predict(modeloxg, xgtest1)
+```
+
+```{r}
+entry3 <- data.frame(Probability=xgprediccion)
+write.csv(entry3, "entry5xgboost.csv")
+```
+
+Tras convertirlo a csv y subirlo a Kaggle hemos conseguido un resultado de nuestro análisis XGBoost de 0.857791, es el mejor resultado al que hemos llegado hasta ahora comparándolo con el resto de análisis. Hasta el momento nos quedaríamos con XGBoost como modelo de análisis para el problema de "Give me some credit".
+
+### 7-Comparaci�n de resultados: Curvas ROC.
+
+Curva ROC de la regresión logística:
+```{r}
+rocRL <- prediction(predict(glm, ttest), ttest$SeriousDlqin2yrs)
+
+AUCRL <- performance(rocRL, "auc") 
+AUCRL@y.name ## [1] "Area under the ROC curve" 
+AUCRL@y.values ## [[1]] ## [1] 0.6959401
+perfRL <- performance(rocRL, "tpr", "fpr") 
+plot(perfRL, colorize = TRUE) # mostramos colores seg?n el punto de corte # Añadimos la recta y=x que ser?a la correspondiente al peor clasificador abline(a = 0, b = 1) # a?adimos el valor del ?rea bajo la curva
+text(0.4, 0.6, paste(AUCRL@y.name, "\n", round(unlist(AUCRL@y.values), 3)), cex = 0.7)
+```
+
+
+Curva ROC del Support Vector    Machine:
+```{r}
+rocSVM <- prediction(predict(svm_model, ttest), ttest$SeriousDlqin2yrs)
+
+AUCSVM <- performance(rocSVM, "auc") 
+AUCSVM@y.name  
+AUCSVM@y.values 
+perfSVM <- performance(rocSVM, "tpr", "fpr") 
+plot(perfSVM, colorize = TRUE) 
+text(0.4, 0.6, paste(AUCSVM@y.name, "\n", round(unlist(AUCSVM@y.values), 3)), cex = 0.7)
+```
+
+
+Curva ROC del RandomForest:
+```{r}
+rocRF <- prediction(predict(randomforest_1, ttest), ttest$SeriousDlqin2yrs)
+
+AUCRF <- performance(rocRF, "auc") 
+AUCRF@y.name 
+AUCRF@y.values
+perfRF <- performance(rocRF, "tpr", "fpr") 
+plot(perfRF, colorize = TRUE) 
+text(0.4, 0.6, paste(AUCRF@y.name, "\n", round(unlist(AUCRF@y.values), 3)), cex = 0.7)
+```
+
+
+Curva ROC del XGBoost:
+```{r}
+rocXGB <- prediction(predict(modeloxg2, xgtest2), ttest$SeriousDlqin2yrs)
+
+AUCXGB <- performance(rocXGB, "auc") 
+AUCXGB@y.name 
+AUCXGB@y.values 
+perfXGB <- performance(rocXGB, "tpr", "fpr") 
+plot(perfXGB, colorize = TRUE) 
+text(0.4, 0.6, paste(AUCXGB@y.name, "\n", round(unlist(AUCXGB@y.values), 3)), cex = 0.7)
+```
+
+
+RL vs. SVM vs. RF vs. XGB:
+```{r}
+AUCRL <- performance(rocRL, "auc")
+perfRL <- performance(rocRL, "tpr", "fpr")
+plot(perfRL, colorize = TRUE)
+text(0.4, 0.6, paste(AUCRL@y.name, "\n", round(unlist(AUCRL@y.values), 3)),
+     cex = 0.7)
+
+AUCSVM <- performance(rocSVM, "auc")
+perfSVM <- performance(rocSVM, "tpr", "fpr") 
+plot(perfSVM, add = TRUE, colorize = FALSE)
+text(0.4, 0.6, paste(AUCSVM@y.name, "\n", round(unlist(AUCSVM@y.values), 3)),
+     cex = 0.7,
+     col = "black",
+     pos = 3 )
+
+AUCRF <- performance(rocRF, "auc")
+perfRF <- performance(rocRF, "tpr", "fpr")
+plot(perfRF, add = TRUE, colorize = TRUE) 
+text(0.4, 0.6, paste(AUCRF@y.name, "\n", round(unlist(AUCRF@y.values), 3)),
+     cex = 0.7,
+     col = "yellow",
+     pos = 3)
+
+AUCXGB <- performance(rocXGB, "auc")
+perfXGB <- performance(rocXGB, "tpr", "fpr") 
+plot(perfXGB, add = TRUE, colorize = TRUE) 
+text(0.4, 0.6, paste(AUCXGB@y.name, "\n", round(unlist(AUCXGB@y.values), 3)),
+     cex = 0.7,
+     col = "green",
+     pos = 3)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

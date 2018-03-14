@@ -1,0 +1,108 @@
+---
+title: "5- SUPPORT VECTOR MACHINE"
+author: "Jorge Fuertes Argüello"
+date: "17 de enero de 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### INSTALAMOS Y CARGAMOS LIBRERÍAS.
+
+```{r}
+# install.packages("ROCR")
+library(ROCR)
+# install.packages("e1071")
+library(e1071)
+# install.packages("caret")
+library(caret)
+# install.packages("xgboost")
+library(xgboost)
+# install.packages("randomForest")
+library(randomForest)
+# install.packages("quantmod")
+library(quantmod)
+```
+
+### 4- SUPPORT VECTOR MACHINE
+
+El análisis SVM consiste en establecer una línea que nos separe de la mejor manera posible nuestros datos mediante soportes (support) que son aquellos líneas imaginarias que determinan la anchura del margen que hay desde la línea hasta los datos (puntos visualmente).
+
+En la fórmula la C representa un parámetro de regularización:
+
+Una C pequeña en nuestra fórmula permite que las restricciones se ignoren fácilmente (gran margen), mientras que una C grande permite que las restricciones sean difíciles de ignorar (estrecho margen) y si C es igual a infinito el margen es duro ya que se imponen todas las restricciones.
+
+Los Kernels permiten mapear los datos en un alto espacio de características dimensionales para aumentar
+el poder computacional de las máquinas lineales.
+
+Establecemos el modelo de SVM para nuestra muestra de entrenamiento (ttrain) del dataset credit_train, establecida como un 80% en el modelo de regresión logística:
+```{r}
+svm_model <- svm(ttrain$SeriousDlqin2yrs~.,
+                 data = ttrain,
+                 kernel = "linear", 
+                 cost = 1)
+```
+
+Para poder realizar el siguiente SVM con kernel "radial", y método "C-classification", es necesario que nuestra variable a explicar ("SeriousDlqin2yrs") sea de clase "fator":
+```{r}
+# ttrain$SeriousDlqin2yrs <- as.factor(ttrain$SeriousDlqin2yrs)
+# svm_model <- svm(ttrain$SeriousDlqin2yrs~.,
+#                  data = ttrain, 
+#                  method = "C-classification",
+#                  kernel = "radial",
+#                  cost = 1,
+#                  gamma = 0.25)
+```
+
+Tras llegar a una comparación de ambos SVM realizados anteriormente, el que mejor solución nos ofrece es el primero, pero antes de nada, vamos a realizar exactamente lo mismo con la muestra completa de entrenamiento y de test.
+
+```{r}
+predSVM <- round(predict(svm_model, ttest))
+head(predSVM)
+```
+
+Construimos la matriz de confusión:
+```{r}
+confusionMatrix(predSVM, ttest$SeriousDlqin2yrs)
+```
+
+#### Muestra de entrenamiento completa (credit_train):
+
+Esta vez vamos a realizar el mismo proceso pero utilizando la muestra de entrenamiento completa y probando nuestro modelo con la muestra de test (credit_test):
+```{r}
+svm_model1 <- svm(credit_train$SeriousDlqin2yrs~.,
+                  data = credit_train,
+                  kernel = "linear", 
+                  cost = 1)
+```
+
+```{r}
+# credit_train$SeriousDlqin2yrs <- as.factor(credit_train$SeriousDlqin2yrs)
+# svm_model2 <- svm(credit_train$SeriousDlqin2yrs~.,
+#                   data = credit_train,
+#                   method = "C-classification",
+#                   kernel = "radial",
+#                   cost = 1,
+#                   gamma = 0.25)
+```
+
+Una vez comprobados los resultados de ambos análisis SVM en Kaggle, el que mejor resultado nos ha dado es el primero por lo que vamos a dejar comentado el segundo.
+
+```{r}
+predSVM1 <- predict(svm_model1, credit_test[,-1])
+head(predSVM1)
+```
+
+```{r}
+entrySVM <- data.frame(Probability=predSVM1)
+write.csv(entrySVM, "entry3SVM.csv")
+```
+
+Vamos a elaborar un csv de los mismos para proceder a la observación del resultado final en Kaggle. Una vez subido a kaggle el resultado obtenido de nuestro análisis Support Vector Machine es de 0.708573, por lo que hemos mejorado ligeramente nuestros resultados con respecto al modelo de regresión logística.
+
+
+
+
+

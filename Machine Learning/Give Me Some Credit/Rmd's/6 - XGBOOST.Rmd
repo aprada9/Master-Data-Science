@@ -1,0 +1,169 @@
+---
+title: "7 - XGBOOST"
+author: "Jorge Fuertes Argüello"
+date: "17 de enero de 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### INSTALAMOS Y CARGAMOS LIBRERÍAS.
+
+```{r}
+# install.packages("ROCR")
+library(ROCR)
+# install.packages("e1071")
+library(e1071)
+# install.packages("caret")
+library(caret)
+# install.packages("xgboost")
+library(xgboost)
+# install.packages("randomForest")
+library(randomForest)
+# install.packages("quantmod")
+library(quantmod)
+```
+
+### 6- XGBOOST
+
+El análisis de XGBoost, actualmente muy utilizado, se llevan a cabo distintos modelos estableciendo un peso diferente para cada uno, es parecido al random forest, aunque este algoritmo es de tipo boosting, es decir, los árboles reforzados (boosted trees) se construyen secuencialmente y, los resultados de cada árbol van a influir en el siguiente.
+
+A diferencia del RandomForest, tiene una mejor precisión con menos árboles y si los datos son ruidosos muestra una mayor varianza. Sin embargo, en el RandomForest existen menos problemas con el overfitting (sobreajuste), es más facil de paralelizar y muestra una baja varianza.
+
+Previo a realizarlo con todo el dataset "credit_train", vamos a realizar el modelo con el ttrain (80%) y el ttest (20%):
+
+```{r}
+xgtrain2 <- as.matrix(ttrain[,-1])
+xglabel2 <- as.matrix(ttrain[,1])
+```
+
+Realizaremos el mismo proceso con la muestra de test (credit_test):
+```{r}
+xgtest2 <- as.matrix(ttest[,-1])
+xgttest2 <- as.matrix(ttest[,1])
+```
+
+Observamos de que clase es cada variable en la matriz xgtrain:
+```{r}
+str(xgtrain2)
+```
+
+Tras realizar diferentes pruebas y búsquedas, hemos determinado una función de cross validation para el análisis XGBoost en el que nos va a indicar los train-error y test-error de cada una de las iteraciones que nosotros indiquemos al algoritmo. Una vez probado con hasta 800 iteraciones (nrounds), vamos a intentar determinar cuál es el número óptimo de iteraciones:
+```{r}
+dtrain2 <- xgb.DMatrix(data = xgtrain2, label = xglabel2) 
+dtest2 <- xgb.DMatrix(data = xgtest2, label= xgttest2)
+```
+
+```{r}
+params <- list(booster = "gbtree", 
+               objective = "binary:logistic",
+               eta=0.3,
+               gamma=0,
+               max_depth=6,
+               min_child_weight=1, 
+               subsample=1, 
+               colsample_bytree=1)
+
+
+xgbcv <- xgb.cv(params = params,
+                data = dtrain,
+                nrounds = 100,
+                nfold = 5, 
+                showsd = T, 
+                stratified = T, 
+                print.every_n = 10, 
+                early_stop_round = 20, 
+                maximize = F)
+```
+
+Construimos el modelo:
+```{r}
+modeloxg2 <- xgboost(data = xgtrain2,
+                    label = xglabel2,
+                    nrounds = 15, 
+                    objective = "binary:logistic")
+```
+
+Realizamos la predicción sobre la matriz de test en la que se encuentran todas las variables menos la primera ya que está compuesta de todos NAs:
+```{r}
+xgprediccion2 <- predict(modeloxg2, xgtest2)
+```
+
+Matriz de confusión:
+```{r}
+confusionMatrix(round(xgprediccion2), ttest$SeriousDlqin2yrs)
+```
+
+#### Muestra de entrenamiento completa (credit_train):
+
+Primero, vamos a convertir a matriz nuestros datos sin la primera columna, es decir, todas las variables menos la variable a explicar por el modelo ("SeriousDlqin2yrs") y por otro lado otra matriz únicamente con los datos de esta variable:
+```{r}
+xgtrain <- as.matrix(credit_train[,-1])
+xglabel <- as.matrix(credit_train[,1])
+```
+
+Realizaremos el mismo proceso con la muestra de test (credit_test):
+```{r}
+xgtest1 <- as.matrix(credit_test[,-1])
+xgttest1 <- as.matrix(credit_test[,1])
+```
+
+Observamos de que clase es cada variable en la matriz xgtrain:
+```{r}
+str(xgtrain)
+```
+
+Tras realizar diferentes pruebas y búsquedas, hemos determinado una función de cross validation para el análisis XGBoost en el que nos va a indicar los train-error y test-error de cada una de las iteraciones que nosotros indiquemos al algoritmo. Una vez probado con hasta 800 iteraciones (nrounds), vamos a intentar determinar cuál es el número óptimo de iteraciones:
+```{r}
+dtrain <- xgb.DMatrix(data = xgtrain, label = xglabel) 
+dtest <- xgb.DMatrix(data = xgtest1, label= xgttest1)
+
+params <- list(booster = "gbtree", 
+               objective = "binary:logistic",
+               eta=0.3,
+               gamma=0,
+               max_depth=6,
+               min_child_weight=1, 
+               subsample=1, 
+               colsample_bytree=1)
+
+
+xgbcv <- xgb.cv(params = params,
+                data = dtrain,
+                nrounds = 800,
+                nfold = 5, 
+                showsd = T, 
+                stratified = T, 
+                print.every_n = 10, 
+                early_stop_round = 20, 
+                maximize = F)
+```
+
+Mediante una observación manual hemos podido llegar a la conclusión de que la iteración que menos error nos proporciona es la iteración número 15, por lo que la escogeremos como número de iteraciones (nrounds) en nuestro modelo XGBoost:
+
+```{r}
+modeloxg <- xgboost(data = xgtrain,
+                    label = xglabel,
+                    nrounds = 15, 
+                    objective = "binary:logistic")
+```
+
+Realizamos la predicción sobre la matriz de test en la que se encuentran todas las variables menos la primera ya que está compuesta de todos NAs:
+```{r}
+xgprediccion <- predict(modeloxg, xgtest1)
+```
+
+```{r}
+entry3 <- data.frame(Probability=xgprediccion)
+write.csv(entry3, "entry5xgboost.csv")
+```
+
+Tras convertirlo a csv y subirlo a Kaggle hemos conseguido un resultado de nuestro análisis XGBoost de 0.857791, es el mejor resultado al que hemos llegado hasta ahora comparándolo con el resto de análisis. Hasta el momento nos quedaríamos con XGBoost como modelo de análisis para el problema de "Give me some credit".
+
+
+
+
+
+

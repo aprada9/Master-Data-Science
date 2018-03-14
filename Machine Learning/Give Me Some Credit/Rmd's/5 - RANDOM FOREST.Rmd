@@ -1,0 +1,92 @@
+---
+title: "6 - RANDOM FOREST"
+author: "Jorge Fuertes Argüello"
+date: "17 de enero de 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### INSTALAMOS Y CARGAMOS LIBRERÍAS.
+
+```{r}
+# install.packages("ROCR")
+library(ROCR)
+# install.packages("e1071")
+library(e1071)
+# install.packages("caret")
+library(caret)
+# install.packages("xgboost")
+library(xgboost)
+# install.packages("randomForest")
+library(randomForest)
+# install.packages("quantmod")
+library(quantmod)
+```
+
+### 5- RANDOM FOREST
+
+En el modelo de Random forest (de tipo bagging), para la separación de nodos, se utilizan un número de variables que se especifican con el parámetro "mtry", las cuales se escogen de manera aleatoria entre las que están en el dataset. En cada nodo, de estas variables aleatorias el modelo selecciona la que mejor discrimina el resultado y va realizando un árbol hasta completarlo. Este proceso se realiza tantas veces como "ntree" (número de árboles) se hayan indicado y, cada árbol al seleccionarse aleatoriamente las variables, va a tener una solución diferente al resto de árboles.
+
+Una vez completado este proceso y cuando el modelo ya tiene todos los árboles de decisión completados, realiza una "votación" para ver cuales son los mejores, y el que más se haya votado es el que se establece como clasificación final cuando recibe una sola observación.
+
+En primer lugar construiremos nuestro modelo random forest utilizando la muestra de entrenamiento del 80% de la gran muestra de entrenamiento (credit_train). Para ello vamos a establecer que las variables que se escojan aleatoriamente para la separación de nodos sean 3 y que nuestro modelo realice 500 árboles:
+```{r}
+randomforest_1 <-randomForest(ttrain[,-1], 
+                              ttrain$SeriousDlqin2yrs, 
+                              mtry=3, 
+                              ntree=500, 
+                              keep.forest=TRUE,
+                              importance=TRUE, 
+                              do.trace = TRUE)
+```
+
+Predecimos con la parte de test, es decir, el 20% del trainning set:
+```{r}
+predRF <- round(predict(randomforest_1, ttest))
+head(predRF)
+```
+
+Construimos la matriz de confusión:
+```{r}
+confusionMatrix(predRF, ttest$SeriousDlqin2yrs)
+```
+
+Parece que el nivel de accuracy es muy bueno y la matriz de confusión nos da perfecta sin ningún tipo de errores.
+
+#### Muestra de entrenamiento completa (credit_train):
+
+Una vez observados los resultados con las muestras más pequeñas, vamos a construir el RandomForest con todo el training set, indicando exactamente los mismos parámetros indicados anteriormente:
+
+```{r}
+randomforest_2 <-randomForest(credit_train[,-1], 
+                              credit_train$SeriousDlqin2yrs,
+                              mtry=3,
+                              ntree=500, 
+                              keep.forest=TRUE, 
+                              importance=TRUE, 
+                              do.trace = TRUE)
+```
+
+Hacemos la prediccion finalmente con la muestra de test de 101503 observaciones:
+```{r}
+predRF2 <- predict(randomforest_2, credit_test[,-1])
+head(predRF2)
+```
+
+```{r}
+entry2 <- data.frame(Probability=predRF2)
+write.csv(entry2, "entry4RF.csv")
+```
+
+Tras convertirlo a csv y subirlo a Kaggle hemos conseguido un resultado de nuestro análisis randomForest de 0.852123, por lo que, de momento es el mejor resultado que hemos obtenido superando al análisis de regresión logística y al Suppot Vector Machine.
+
+
+
+
+
+
+
+

@@ -1,0 +1,606 @@
+---
+title: "RMD EXAMEN FINAL"
+author: "Álvaro de Prada"
+date: "31/1/2018"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE , results='hide'}
+library(psych)
+library(ppcor)
+require(Hmisc)
+library(clValid)
+library(data.table)
+library(readxl) # para leer el excel.
+library(corrplot) # para plotear la correlación
+library(outliers) # para detectar outliers
+library(car)
+library(factoextra)
+library(FactoMineR)
+library(NbClust)
+library(ggplot2)
+library(pander)
+library(gridExtra)
+```
+
+# Objetivo del trabajo
+
+
+# Preparación de los datos
+- Exploración y tratamiento de los datos
+```{r, include=FALSE , results='hide'}
+dataset_orig <- read_excel("DATASET_RAQ_JMLZ.xlsx")
+# quitamos la primera variable Company ID
+dataset <- dataset_orig[, -(1)]
+```
+
+En primer lugar, vamos a resumir de forma breve el significado y funcionamiento de cada una de las variables incluídas en el dataset, para posteriormente proceder a su formateo.
+
+```{r}
+summary(dataset)
+summary(scale(dataset[,-9]))
+var(dataset)
+var(scale(dataset[,-9]))
+```
+Uno de los primeros datos que arroja esta tabla es que no existen NAs en los datos. Por lo que el siguiente paso será hacer un breve entendimiento de las variables.
+
+El dataset está compuesto por un conjunto de observaciones referentes a distintas empresas. En él, la columna Manipulater indica si dicha empresa cometió fraude o no (manipulación de los libros contables.)
+
+En cuanto al resto de variables presentes en el dataset:
+
+  1. DSRI: Days Sales to Receivables Index ()
+  DSRI = (cuentas por cobrar(t)/sales(t)) / (cuentas por cobrar(t-1)/ventas(t))
+  
+  2. GMI : Gross Margin Index (Margen Bruto)
+  GMI = (ventas(t-1)-coste del bien vendido(t-1))/ventas(t-1) / (ventas(t)-coste del bien vendido(t))/ventas(t)
+      
+  3. AQI : Asset Quality Index (Indice de calidad de activos)
+  AQI = (1-((activo corriente-inmovilizado material)/total activos)) / (1-((activo corriente-inmovilizado material)/total activos))
+      
+  4. SGI : Sales Growth Index (indice de ventas)
+  SGI = sales(t) / sales(t-1)
+      
+  5. DEPI : Depreciation Index (indice de depreciación)
+  DEPI = Depreciation(t-1)/(depreciation(t-1)+inmovilizado material) / (depreciation(t)/(depreciation(t)+inmovilizado material(t)))
+      
+  6. SGAI : Sales General and Administrative Index (indice general de gastos en aministrción y ventas)
+  SGAI = (SGMI(t)/ventas(t)) / (SGMI(t-1)/ventas(t-1))
+  
+  7. ACCR : Accruals to Total Assets (% de devengo sobre el total de activos)
+  ACCR = (Bº antes de impuestos(t) - efectivo de operaciones(t) (efectivo)) / total de activos(t)
+      
+  8. LEVI : Levenge Index (Indice de apalancamiento)
+      
+## El M-Score de Beneish:
+
+
+Todas las variables incluidas en el dataset tienen un factor común; el M-Score. 
+El M-Score fue desarrollado por el profesor Messod Beneish y consiste en aplicar un peso a cada una de las variables anteriores, obteniendo así una cifra final. Si esta cifra es superior a -1.74, existen elevadas probabilidades de que la empresa esté manipulando la contabilidad. (Beneish, 1999)
+La fórmula del M-Score es la siguiente:
+
+```{r, eval=FALSE}
+M = -4.84 + 0.92*DSRI + 0.528*GMI + 0.404*AQI + 0.892*SGI + 0.115*DEPI – 0.172*SGAI + 4.679*ACCR – 0.327*LEVI
+```
+
+A priori, esto no tendrá ningún impacto en nuestro trabajo, pero es importante conocer la utilidad que pueden tener las variables para tratar de conocer mejor el entorno del trabajo.
+
+
+# Tratamiento de datos
+
+Una vez ezplicadas brevemente cada una de las variables, procedemos al análisis exploratorio y formateo de las variables.
+
+1 - En primer lugar, transformamos la variable Manipulater a factor (1,0) para poder trabajar con ella.
+```{r,echo=FALSE}
+dataset$Manipulater <- factor(dataset$Manipulater, levels = c("No", "Yes"), 
+                             labels = c(0, 1))
+summary(dataset$Manipulater)
+```
+Podemos comprobar en un primer acercamiento que nos encontramos ante un dataset poco balanceado, en el que las observaciones que manipulan no alcanzan el 3% del total del dataset. En un principio no sabemos si esto tendrá impacto a la hora de llevar a cabo nuestro trabajo. Sin embargo, al final del trabajo llevaremos a cabo una técnica de balanceo del dataset para comprobar si los resultados varían significativamente.
+
+
+
+2 - Comprobamos la matríz de correlaciones de las variables de la totalidad del dataset, es decir, incluyendo grupo fraudulento y no fraudulento y representamos gráficamente:
+
+```{r, include=FALSE , results='hide'}
+cor(dataset[1:8])
+```
+
+```{r,echo=FALSE}
+corrplot(cor(dataset[1:8]), order = "hclust", tl.col='black', tl.cex=.75,type = 'lower',title = 'Correlación')
+```
+Podemos observar en el gráfico superior que las correlaciones existentes entre variables son muy reducidas, siendo la mayor la correlación entre SGAI y DSRI con un 0.47. Como conslusión obtenemos que las variables se encuentran a nivel general muy poco correlacionadas entre ellas.
+
+
+
+```{r, include=FALSE , results='hide'}
+# 3 - Comprobamos los estadísticos más comunes en las variables:
+dataset_stats = data.frame( 
+        Min = apply(dataset[, 1:8], 2, min, na.rm=TRUE), # min
+        Q1 = apply(dataset[, 1:8], 2, quantile, 1/4, na.rm=TRUE), # 1er cuartil
+        Med = apply(dataset[, 1:8], 2, median, na.rm=TRUE), # mediana
+        Mean = apply(dataset[, 1:8], 2, mean, na.rm=TRUE), # media
+        Q3 = apply(dataset[, 1:8], 2, quantile, 3/4, na.rm =TRUE), # 3er cuartil
+        Max = apply(dataset[, 1:8], 2, max, na.rm=TRUE) # max
+)
+dataset_stats=round(dataset_stats, 2)
+dataset_stats
+```
+Podemos observar casi todas las variables tienen una media comprendida entre 0 y 1, con alguna excepción que se sale de este rango ligeramente. Sin embargo, comprobamos que los mínimos y máximos de casi todas las variables tienen valores muy alejados de este rango. Esto nos indica una alta probabilidad de que existan outliers, por lo que deberemos analizarlos para decidir como proceder con ellos.
+
+Podemos también observar esta situación mediante una representación gráfica de las variables:
+```{r,echo=FALSE}
+multi.hist(dataset[,-(9)], main = "", freq = T) #draw the histograms for all variables  
+```
+Comprobamos que si bien la mayoría de las observaciones se comprenden en rangos reducidos, existen observaciones que toman valores alejados a estos, corroborando la hipóteis de la existencia de outliers.
+
+Por este motivo, se llevará a cabo el análisis de outliers.
+
+# Análisis de Outliers:
+Al no haber encontrado NAs, vamos a comprobar si existen outliers en el dataset que puedan hacer que los resultados de nuestro trabajo posterior se vean perjudicados por datos erróneos. Para ello emplearemos la distancia de Cook, y la representamos gráficamente. Todos los puntos por encima de la línea roja pueden ser considerados outliers, ya que difieren mucho del resto de observaciones en cuanto a la desviación típica media de las variables (concretamente hemos establecido el punto de corte en 4 veces la desviación típica media).
+```{r,echo=FALSE}
+mod <- glm(Manipulater ~ ., data=dataset, family = "binomial")
+cooksd <- cooks.distance(mod)
+# Influence measures
+# In general use, those observations that have a cook’s distance greater than 4 times the mean may be classified as influential. This is not a hard boundary.
+```
+
+```{r,echo=FALSE}
+plot(cooksd, pch="-",cex=2, main="Influential Obs by Cooks distance")  # plot cook's distance
+abline(h = 4*mean(cooksd, na.rm=T), col="red")  # add cutoff line
+text(x=1:length(cooksd)+1, y=cooksd, labels=ifelse(cooksd>4*mean(cooksd, na.rm=T),names(cooksd),""), col="red")  # add labels
+
+```
+En la gráfica se observa que hay una serie de puntos que superan la línea de corte, indicando que son outliers. A continuación extraeremos la tabla con estas observaciones para su análisis.
+```{r,echo=FALSE}
+influential <- cooksd>4*mean(cooksd, na.rm=T)  # influential row numbers
+outliers1 <- as.data.frame((dataset[influential, ]))  # influential observations.
+print(outliers1)
+summary(outliers1$Manipulater)
+```
+Esta tabla arroja mucha información, la más relevante es la siguiente:
+ - Podemos comprobar que las observaciones consideradas como outliers tienen en alguna de sus variables valores que se alejan excesivamente de la media. En total, 24 observaciones.
+ 
+ - ¿Debemos considerarla outliers y eliminarlas del dataset?
+ Por un lado sí podríamos decir que se trata de outliers. Sin embargo, de las 24 observaciones obtenidas, 19 son de tipo Manipulater=1. Recordemos que en el dataset completo existían un total de 39 Manipulater=1/Yes. Es decir, más de la mitad de las observaciones de tipo Manipulater=1/Yes están compuestas de algún tipo de outlier. 
+
+Por lo tanto, la conlcusión que obtenemos es que si bien pueden tratarse de outliers, lo más probable es que el propio hecho de que alguno de los ratios contena un outlier eleva la probabilidad de que se esté manipulando la contabilidad. Por lo tanto, no podemos quitar los outliers del dataset ya que nos están aportando una información muy valiosa.
+
+
+Concluimos aquí el análisis exploratorio de datos en el que hemos comprobado como existen numerosos outliers en los datos, pero tras hacer un análisis de los mismos hemos decidido mantenerlos en el dataset de trabajo ya que consideramos que el hecho de que una observación contenga algun tipo de outlier puede ser considerado como una característica común entre las empresas que cometen fraude. Por lo tanto, el hecho de que una empresa contenga outliers en alguno de sus ratios aporta una información muy valiosa a los datos.
+
+
+## Primera parte: Relaciones de variables entre grupo fraudulento y no frauduleto:
+
+A contiuación, una vez que hemos comprobado que no existen relaciones significativas entre las variables sobre el dataset total que incluye ambos grupos de empresas, llevaremos a cabo un análisis por separado de ambos grupos con la finalidad de hallar relaciones entre variables dentro de ellos, y comprobar si coinciden entre ambos grupos.
+```{r, include=FALSE ,echo=FALSE}
+# Separamos el dataset por manipulater
+dataset.yes <-subset(dataset, Manipulater == "1")
+dataset.yes <- dataset.yes[,-9]
+dataset.no <- subset(dataset, Manipulater == "0")
+dataset.no <- dataset.no[,-9]
+```
+
+```{r,  include=FALSE ,echo=FALSE}
+cor.mat.yes = round(cor(dataset.yes),2) 
+```
+
+Para ello, inicialmente hemos dividido el dataset en dos subconjuntos, uno que incluye todas las observaciones que manipulan y otro que incluye las que no manipulan.
+Se ha representado la matriz de correlaciones entre variables de las observaciones que sí manipulan:
+```{r, echo=FALSE}
+corrplot(cor.mat.yes, type="lower", order="original", tl.col="black", tl.cex=0.7, tl.srt=45)
+```
+Comprobamos, que aunque las correlaciones son más fuertes en este subconjunto que en el dataset total, sigue sin existir una fuerza de correlación suficiente entre las mismas.
+
+
+```{r, echo=FALSE}
+cor.mat.no = round(cor(dataset.no),2) 
+```
+
+Realizamos el mismo grñafico sobre las observaciones que no manipulan:
+
+```{r, echo=FALSE}
+corrplot(cor.mat.no, type="lower", order="original", tl.col="black", tl.cex=0.7, tl.srt=45)
+```
+En esta ocasión podemos comprobar que esta matriz de correlaciones guarda mayor parecido con la matriz de todo el conjunto de datos. Esto es lógico ya que, como hemos visto anteriormente, el dataset esta compuesto en su mayoría por este tipo de observaciones. 
+Por lo tanto concluimos que las correlaciones entre ambos subconjuntos no son demasiado fuertes.
+
+```{r, include=FALSE ,echo=FALSE}
+dataset.si.acp = PCA(dataset.yes, scale.unit = T, ncp = ncol(dataset.yes[,1:8]), graph = TRUE) 
+dataset.no.acp = PCA(dataset.no, scale.unit = T, ncp = ncol(dataset.no[,1:8]), graph = TRUE) 
+```
+
+A continuación llevaremos a cabo un gráfico de sedimentación que nos permita identificar cual es capacidad explicativa de los factores en cada uno de los subconjuntos. 
+En primer lugar realizamos el gráfico con el subconjunto de "Yes":
+```{r, echo=FALSE}
+fviz_eig(dataset.si.acp, addlabels=T, hjust=-0.3)+
+labs(title="Gráfico de sedimentación - Yes Manipulater")+
+theme_minimal()
+```
+Observamos que las tres primeras dimensiones son capaces de explicar más del 80% de la variabilidad, por lo que analizaremos la composición de dichas dimensiones para comprobar que variables son importantes en ellas.
+
+```{r,echo=FALSE}
+fviz_contrib(dataset.si.acp, choice="var", axes=1) +
+labs(title="Contribuciones a la explicación del 1er factor - Sí manipulan")
+```
+El primer factor, que es el que más variables explica, da un porcentaje de importancia elevado a las variables SGAI, AQI y DSRI.
+
+Comprobemos el segundo factor:
+```{r,echo=FALSE}
+fviz_contrib(dataset.si.acp, choice="var", axes=2) +
+labs(title="Contribuciones a la explicación del 2º factor - Sí manipulan")
+```
+Comprobamos que en el segundo factor coinciden las variables AQI y SGAI como variables que contribuyen a la explicación de la variabilidad.
+
+Comprobemos el tercer factotr:
+```{r,echo=FALSE}
+fviz_contrib(dataset.si.acp, choice="var", axes=3) +
+labs(title="Contribuciones a la explicación del 3er factor - Sí manipulan")
+```
+En este tercer factor se incluye la variable GMI como importante, variable que no había tomado peso hasta ahora.
+
+Por lo tanto obtenemos como conclusión que en el subconjunto de empresas que sí manipulan su contabilidad, las variables AQI, SGAI y GMI contribuyen en una medida superior al resto a explicar que estas empresas manipulen la contabilidad.
+
+A continuación, llevaremos a cabo el mismo análisis sobre el subconjunto de empresas que no manipulansu contabilidad.
+
+
+```{r,echo=FALSE}
+fviz_eig(dataset.no.acp, addlabels=T, hjust=-0.3)+
+labs(title="Gráfico de sedimentación - No Manipulater")+
+theme_minimal()
+
+```
+Comprobamos que en este caso, sólo los dos primeros factores son capaces de explicar más del 80% de la variabilidad, por lo que se anaizará la composición de estos dos factores.
+
+
+```{r,echo=FALSE}
+fviz_contrib(dataset.no.acp, choice="var", axes=1) +
+labs(title="Contribuciones a la explicación del 1er factor - No manipulan")
+```
+Comprobamos que la totalidad de la variabilidad explicada por el primer factor se basa en la variable AQI.
+
+
+Vemos que sucede con el segundo factor:
+```{r,echo=FALSE}
+fviz_contrib(dataset.no.acp, choice="var", axes=2) +
+labs(title="Contribuciones a la explicación del 2º factor - No manipulan")
+```
+
+En este caso el factor se compone en su mayoría por la variable GMI.
+
+```{r,echo=FALSE}
+fviz_contrib(dataset.no.acp, choice="var", axes=3) +
+labs(title="Contribuciones a la explicación del 3 factor - No manipulan")
+```
+
+Por lo tanto, en el subconjunto de empresas queno manipulan su contabilidad obtenemos que el valor que tomen las variables AQI y GMI tienen gran peso en esta categorización.
+
+Finalmente comparamos los resultados de los análisis de ambos subconjuntos:
+
+ - Variables importantes de empresas que sí manipulan: AQI, SGAI y GMI
+ - Variables importantes de empresas que no manipulan: AQI y GMI
+ 
+Por lo tanto, como conclusión a este primer apartado en el que se busca conocer las relaciones e importancia de las variables dentro de cada subconjunto, obtenemos que sí bien en ambos subconjuntos existen ciertas variables que cobran más importancia que otras a la hora de asignar la pertenencia a una categoría u a otra, en ambos grupos el análisis coincide que la importancia de las variables AQI y GMI es elevada. Por lo tanto concluimos que estas variables tienen una importancia muy superior al resto, y pueden ser importantes a la hora de clasificar una empresa en un grupo u otro.
+
+
+
+
+
+## Análisis Cluster:
+
+Una vez descartada la realización del PCA, vamos a llevar a cabo un análisis cluster sobre las observaciones del dataset.
+
+A continuación, de cara a realizar el análisis cluster, vamos a efectuar una sería análisis sobre el dataset para poder averiguar cual puede ser el método óptimo a la hora de realizar el análisis cluster.
+
+```{r,include=FALSE , results='hide'}
+my_data <- scale(dataset[,1:8])
+dataset.tipificadas <- scale(dataset[,1:8])
+dataset.acp <- PCA(dataset.tipificadas, scale.unit = F, ncp = ncol(dataset[,1:8]), graph = TRUE) 
+```
+```{r,include=FALSE , results='hide'}
+intern <- clValid(dataset.acp$ind$coord[,1:4],
+                  nClust = 2:6, 
+                  clMethods = c("hierarchical","kmeans",'clara',"pam"),
+                  validation = "internal",
+                  maxitems = nrow(my_data))
+summary(intern)
+
+```
+
+```{r, include=FALSE , results='hide'}
+datasetdf <- as.data.frame(dataset.tipificadas)
+```
+
+
+```{r, include=FALSE , results='hide'}
+set.seed(100)
+k.max = 10 
+data=datasetdf
+wss= sapply(1:k.max,
+            function(k){kmeans(data, k, nstart=20 )$tot.withinss})
+plot(1:k.max, wss,
+     type="b", pch = 19, frame = FALSE,
+     xlab="Número K de clusters",
+     ylab="Suma total de cuadrados intra-clusters")
+
+```
+
+En el siguiente gráfico se observa el número de clusters óptimo en el que se tendría que dividir los datos:
+```{r,echo=FALSE}
+
+fviz_nbclust(data, kmeans, method = "silhouette") +
+  ggtitle("Número óptimo de clusters - k medias") +
+  labs(x="Número k de clusters",y="Anchura del perfil promedio")
+# nos dice que el número optimo con kmeans sería de 2 clusters.
+
+```
+
+Podemos comprobar que el número óptimo de clusters siguiendo el método k-means sería de 2 clusters.
+
+```{r,include=FALSE , results='hide'}
+## con la librería NBCLUST
+
+set.seed(123)
+ clus.nb = NbClust(data, distance = "euclidean",
+                   min.nc = 2, max.nc = 10,
+                   method = "complete", index ="gap")
+
+nb.todos = NbClust(data, distance = "euclidean", min.nc = 2,
+                    max.nc = 10, method = "complete", index ="all")
+fviz_nbclust(nb.todos) + theme_minimal() +
+  labs(x="Número k de clusters", y="Frecuencia")
+
+```
+
+Por lo tanto, llevaramos a cabo una clusterización del dataset en 2 conjuntos. (ara ello hemos calculado previamente la distancia euclídea).
+
+
+```{r,echo=FALSE}
+d = dist(dataset.tipificadas, method = "euclidean")
+```
+
+Ejecutamos la función hclust sobre el dataset, especificando el método "ward.D2" y la matriz de disimilaridades previamente calculada:
+```{r,echo=FALSE}
+dataset.hc = hclust(d, method = "ward.D2") 
+```
+
+Y representamos gráficamente el dendograma con 3 grupos mediante kmedias:
+```{r, echo=FALSE}
+plot(dataset.hc, cex = 0.6, hang = -1, main="Dendrograma - hclust") 
+rect.hclust(dataset.hc, k=2, border = 2:4)
+dataset.eclust = eclust(dataset.tipificadas,hc_method ="ward.D2", FUNcluster = "kmeans", stand="T", hc_metric="euclidean", k=2)
+```
+Vemos que un análisis cluster sobre la totalidad de los datos no aporta apenas información, ya que la división que se consigue haciendo clusters no está muy balanceada.
+
+Por lo tanto, este sería el resultado de la clusterización del dataset de fraude. Haremos un breve análisis de la división que se ha producido entre observaciones.
+
+```{r,echo=FALSE}
+clusters<-dataset.eclust$cluster
+clusters<-as.data.frame(clusters)                        
+resultado<-data.frame(clusters,dataset)
+```
+
+La siguiente tabla muestra la media de cada variable en cada uno de los clusters, pero el hecho de que el cluster 1 este formado sólo por 2 observaciones, limita mucho estos resultados.
+```{r,echo=FALSE}
+aggregate(resultado[,-10], list(resultado$clusters), mean)
+
+```
+
+Podemos intuir gracias al análisis exploratorio de datos previo, que el modelo ha podido orientar su división en base a aquellas observaciones que cometen fraude, por lo que vamos a explorar el número de veces que aparece en cada cluster una observación que manipula:
+
+```{r,echo=FALSE}
+cluster1 <- resultado[resultado$clusters == 1, ]
+cluster2 <- resultado[resultado$clusters== 2, ]
+
+```
+
+```{r,echo=FALSE}
+counts1<-data.frame(table(cluster1$Manipulater))
+counts2<-data.frame(table(cluster2$Manipulater))
+
+counts1
+counts2
+
+```
+Si bien en el primer cluster la división no está clara, en el cluster sí queda claro que se incluyen mayoritariamente valores de tipo Manipulater = Yes.
+
+Esto nos hace plantearnos la siguiente pregunta:
+¿Habría mejorado el análisis cluster de haber tenido un dataset más balanceado entre observaciones que manipulan y observaciones que no manipulan?
+
+Para responder a esta pregunta hemos llevado a cabo una investigación de posibles soluciones, hallando una que puede ser muy útil y que será empleada a continuación.
+
+## Balanceando los datos:
+
+En la búsqueda de soluciones a los problemas de balanceo, descubrimos que se trata de algo "típico" en problemas de fraude como el que nos ocupa el tiempo actualmente. Se han desarrollado numerosos métodos para tratar de diluir este problema de balanceo. 
+La solución que emplearemos se encuentra en la librería mlr y consiste en procesos de "oversampling" y "undersampling".
+
+# Oversampling y Undersamplning:
+(source: https://mlr-org.github.io/mlr-tutorial/release/html/over_and_undersampling/index.html)
+
+
+ - Oversampling: Consiste en generar observaciones adicionales de la clase minoritaria (en nuestro caso las observaciones con Manipulater=Yes), mediante la creación de copias exactas de observaciones minoritarias existentes, mientras que la clase mayoritaria no se manipula, sigue siendo constante.
+
+ - Oversampling-Smote: Se trata de una variación del oversampling que sigue la misma metodología, salvo que en lugar de duplicar observaciones minoritarias (que podría ocasionar overfitting), con este método las nuevas observaciones de la clase minoritaria son creadas siguiendo el método de los vecinos más cercanos.
+ 
+ - Undersampling: Esta técnica seria la contraria a las anteriores, ya que consiste en la eliminación de variables mayoritarias para conseguir de esta manera equilibrar las proporciones.
+ 
+ De entre los métodos descritos, hemos decidido emplear el método de smote al considerar que su forma de aumentar las observaciones de la clase minoritaria es más correcta. Hemos descartado también el proceso de undersampling ya que consideramos que el dataset no contiene un número suficiente de observaciones para que este método pueda ser llevado a cabo sin alterar los resultados de forma significativa sobre la realidad.
+
+# SMOTE:
+
+
+```{r,echo=FALSE}
+dataset <- read_excel("~/Documents/CUNEF/DATASET EXAMEN PREDICCION Y ETL/DATASET_RAQ_JMLZ(1).xlsx")
+dataset <-as.data.frame(dataset[,2:10]) # Remove Company ID
+dataset$Manipulater <- factor(ifelse(dataset$Manipulater == 'Yes', 1, 0))
+```
+
+```{r,echo=FALSE}
+library(mlr)
+```
+
+```{r,echo=FALSE}
+set.seed(123)
+task = makeClassifTask(data = dataset, target = "Manipulater")
+```
+
+```{r,echo=FALSE}
+task.smote = smote(task, rate = 8, nn = 5)
+```
+
+
+
+
+
+Una vez aplicada la técnica de oversampling-smote, la proporción quedaría de la siguiente manera (aumenta 8 veces el número de observaciones tipo Manipulater=Yes):
+```{r,echo=FALSE}
+table(getTaskTargets(task.smote))
+```
+Como podemos comprobar, las observaciones minoritarias pasan de ser 39 a 312. Podríamos haber elegido que la proporción fuera menor aun (50-50 por ejemplo), pero consideramos importante que el dataset original sea lo más fiel posible a los datos originales.
+
+
+```{r,echo=FALSE}
+smote_dataset <- task.smote$env$data
+```
+
+```{r,echo=FALSE}
+smote_dataset$Manipulater<-gsub(0,"No",smote_dataset$Manipulater)
+smote_dataset$Manipulater<-gsub(1,"Yes",smote_dataset$Manipulater)
+smote_dataset <- cbind(a = 0, smote_dataset)
+```
+
+
+
+```{r,echo=FALSE}
+# Y concluímos su formateo:
+smote_dataset_orig <- smote_dataset[, -(1)]
+smote_dataset <- smote_dataset[, -(1)]
+# quitamos la primera variable Company ID
+
+smote_dataset$Manipulater <- factor(smote_dataset$Manipulater, levels = c("No", "Yes"), 
+                             labels = c(0, 1))
+smote_dataset <- smote_dataset[, -(9)]
+smote.tip <- scale(smote_dataset)
+```
+
+
+
+Es importante aclarar que no se van a repetir los pasos de análisis de variables llevado a cabo en la primera parte del trabajo, ya que el nuevo dataset no modifica las variables, símplemente las 'refuerza' aumentando la población, por lo que podemos concluir que en este sentido las correlaciones no varían de forma signifiativa. 
+
+Con este nuevo dataset sí tiene sentido realizar un análisis clusters, pues al haber más observaciones de la clase minoritaria, puede haber separaciones más claras, ya que como hemos comentado anteriormente, existían indicios de que en la división de clusters llevada a cabo tuviera un peso significativo el si la observación era o no Manipulater.
+
+Por todo lo expuesto, a continuación se volvera a llevar a cabo el análisis cluster con el dataset SMOTE.
+
+
+
+# Análisis CLUSTER - SMOTE:
+
+```{r, include=FALSE , results='hide'}
+fviz_nbclust(smote_dataset, kmeans, method = "silhouette") +
+  ggtitle("Número óptimo de clusters - k medias") +
+  labs(x="Número k de clusters",y="Anchura del perfil promedio")
+```
+
+
+
+
+```{r,echo=FALSE}
+# Calculamos la distancia euclídea:
+d.smote <- dist(smote.tip,method = "euclidean")
+```
+
+```{r,echo=FALSE}
+smote.dataset.hc = hclust(d.smote, method = "ward.D2") 
+```
+
+Obtenemos el dendograma y la clusterización con el nuevo dataset:
+```{r, echo=FALSE}
+plot(smote.dataset.hc, cex = 0.6, hang = -1, main="Dendrograma - hclust") 
+rect.hclust(smote.dataset.hc, k=3, border = 2:4)
+smote.dataset.eclust = eclust(smote.tip,hc_method ="ward.D2", FUNcluster = "kmeans", stand="T", hc_metric="euclidean", k=2)
+```
+Comprobamos como claramente el método de oversampling-smote llevado a cabo ha conseguido mejorar de forma importante la clusterización, habiendo una clara diferenciación entre un cluster y otro. 
+A continuación analizaremos la composición de ambos clusters.
+
+```{r,echo=FALSE}
+sclusters<-smote.dataset.eclust$cluster
+sclusters<-as.data.frame(sclusters)                        
+smote.resultado<-data.frame(sclusters,smote_dataset_orig)
+```
+
+
+Comprobamos la media de cada variable por cluster:
+```{r,echo=FALSE}
+aggregate(smote.resultado[,(-10)], list(smote.resultado$sclusters), mean)
+```
+
+Y la desviación típica:
+```{r,echo=FALSE}
+aggregate(smote.resultado[,(-10)], list(smote.resultado$sclusters), sd)
+```
+Como podemos comprobar, la desviación típica de la mayoria de las variables es considerablemente mayor en el cluster 2 que en e 1. 
+
+```{r,echo=FALSE}
+smote.cluster1 <- smote.resultado[smote.resultado$sclusters == 1, ]
+smote.cluster2 <- smote.resultado[smote.resultado$sclusters== 2, ]
+```
+
+```{r,echo=FALSE}
+smote.counts1<-data.frame(table(smote.cluster1$Manipulater))
+smote.counts2<-data.frame(table(smote.cluster2$Manipulater))
+
+smote.counts1
+smote.counts2
+
+```
+
+Finalmente, comprobamos lo que habíamos podido intuir en la elaboración del cluster inicial, que existen 2 clusters diferenciados principalmente en base a si una empresa manipula o no manipula la contabilidad. 
+En el caso del cluster 1, esta compuesto tanto por empresas que manipulan como por empresas que no manipulan, sin embargo en el segundo cluster unicamente DOS empresa que no manipula está dentro del grupo.
+
+
+Para concluir nuestro tabajo, a continuación vamos a relacionar el trabajo realizado en la primera parte con el trabajo realizado en la segunda. Por ello, lo que queremos comprobar es si las variables que hemos considerado importantes en la primera parte, tienen también importancia a la hora de clusterizar los datos, por lo que representaremos a continuación las observaciones (del conjunto oversampled-smote) por las tres variables que hemos obtenido como importantes: AQI, SGAI y GMI
+
+```{r,echo=FALSE}
+smote.resultado$Manipulater <- factor(smote.resultado$Manipulater, levels = c("No", "Yes"), 
+                             labels = c(0, 1))
+pred1 <- lm(data=smote.resultado, sclusters~. -DSRI -GMI - AQI -DEPI -ACCR)
+summary(pred1)
+```
+ 
+
+Finalmente representamos con las 3 variables más significtivas, sin incluir Manipulater, ya que hemos comprobado previamente que esta variable SI es importante a la hora de pertenecer a un cluster u a otro.
+```{r,echo=FALSE}
+
+library(plotly)
+library(rgl)
+gcluster <- plot_ly(smote.resultado,
+                    x = ~DSRI, y = ~AQI, z = ~SGI,
+                    color = ~(as.factor(sclusters)),
+                    colors = c('red', 'blue')) %>%
+  add_markers() %>%
+  layout(title = "Clusters - Plotly",
+         scene = list(xaxis = list(title = 'DSRI'),
+                     yaxis = list(title = 'AQI'),
+                     zaxis = list(title = 'SGI')))
+
+```
+```{r}
+gcluster
+
+```
+
+
+# Conclusiones:
+
+Finalmente, comprobamos lo que habíamos podido intuir en la elaboración del cluster inicial, que existen 2 clusters diferenciados principalmente en base a si una empresa manipula o no manipula la contabilidad. En el caso del cluster 1, esta compuesto tanto por empresas que manipulan como por empresas que no manipulan, sin embargo en el segundo cluster unicamente DOS empresa que no manipula está dentro del grupo.
+Para concluir nuestro trabajo, hemos relacionado el trabajo realizado en la primera parte con el trabajo realizado en la segunda. Por ello, lo que queremos comprobar es si las variables que hemos considerado importantes en la primera parte, tienen también importancia a la hora de clusterizar los datos, por lo que se ha representado en el gráfico las observaciones (del conjunto oversampled-smote) según las tres variables que hemos obtenido como importantes: AQI, SGAI y GMI
+Podemos comprobar que efectivamente parece haber una separación entre cluestes(rojo,azul) según las variables consideradas importantes en el presente trabajo. Si bien el cluster 1(rojo) parece formarse sobre el GMI y el AQI, el cluster 2 le da especial importancia a al SGAI. 
+
+
+# Bibliografía:
+Beneish, M. D. (1999). The detection of earnings manipulation. Financial Analysts Journal, 55(5), 24-36.)
+
+https://mlr-org.github.io/mlr-tutorial/release/html/over_and_undersampling/index.html

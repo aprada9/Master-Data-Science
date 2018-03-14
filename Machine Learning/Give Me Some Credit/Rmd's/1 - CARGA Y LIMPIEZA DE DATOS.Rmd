@@ -1,0 +1,128 @@
+---
+title: "2 - CARGA Y LIMPIEZA DE DATOS"
+author: "Jorge Fuertes Argüello"
+date: "17 de enero de 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### INSTALAMOS Y CARGAMOS LIBRERÍAS.
+
+```{r}
+# install.packages("ROCR")
+library(ROCR)
+# install.packages("e1071")
+library(e1071)
+# install.packages("caret")
+library(caret)
+# install.packages("xgboost")
+library(xgboost)
+# install.packages("randomForest")
+library(randomForest)
+# install.packages("quantmod")
+library(quantmod)
+```
+
+### 1- CARGA Y LIMPIEZA DE DATOS.
+
+En primer lugar, antes de realizar cualquier tipo de análisis tenemos que cargar los datos y tratarlos, es decir, llevar a cabo un estudio para ver si existen outliers, valores perdidos (NAs) y posteriormente ver cuál es la mejor manera de tratarlos.
+
+#### MUESTRA DE TRAINING
+
+Comenzamos cargando la muestra de training y observando el dataset:
+
+```{r}
+credit_train <- read.csv("cs-training.csv")
+# View(credit_train)
+```
+
+Una vez observada, lo primero que podemos apreciar es que existe una primera variable llamada "x" que entendemos como la columna que nos indica la posición de cada crédito (1,2,3,4...), dado que en R se ejecuta automáticamente esta columna vamor a proceder a eliminarla:
+```{r}
+credit_train <- credit_train[,-1]
+```
+
+Es muy importante saber de que clase (factor, numérica, entera...etc) es cada variable de nuestro dataset para poder realizar un estudio correcto de los datos ya que, en muchas ocasiones, es necesario que las variables sean de un tipo de clase específico para continuar, por lo que vamos a comprobarlo:
+```{r}
+str(credit_train)
+```
+
+Haciendo un "summary" de nuestro dataset podemos ver un resumen de cada una de la variables, indicándose en el mismo, el mínimo, el máximo, primer y tercer cuartil, la media, la mediana y, por último, si existen valores perdidos (NA) y cuántos.
+```{r}
+summary(credit_train)
+```
+
+Podemos comprobar que las únicas variables que tienen valores perdidos son "MonthlyIncome", es decir, ingresos mensuales del individuo y "NumberOfDependents", que representa el número de familiares dependientes del prestatario (sin incluirse él mismo).
+
+Otra forma bastante útil que hemos utilizado para ver de forma correcta únicamente los valores perdidos de cada variable es mediante esta función, que posteriormente se la aplicaremos al dataset. Es un contador, es decir, indica que cada vez que se encuentre en el dataset con un "NA" irá sumando 1 a "n", la cual comienza con un valor igual a 0:
+
+```{r}
+na <- function(x) { 
+  n <- 0 
+  for (i in 1:length(x)) { 
+    if (is.na(x[i])){
+      n <- n + 1 
+      }
+    }
+  return(n) 
+  } 
+sapply(credit_train, na)
+```
+
+Vamos a ver la cantidad de "No defaults" / "Defaults" que existen en nuestro training set y los visualizamos:
+```{r}
+sum(credit_train$SeriousDlqin2yrs==0)
+sum(credit_train$SeriousDlqin2yrs==1)
+plot(as.factor(credit_train$SeriousDlqin2yrs))
+```
+
+
+Para llevar a cabo el tratamiento de los valores perdidos de nuestra muestra de train y que, porteriormente, podamos utilizarla sin problema en nuestros modelos, hemos realizado distintas versiones:
+
+- En primer lugar, hemos probado realizando directamente un na.omit, es decir, eliminando todas aquellas observaciones que contengan un valor perdido.
+- En segundo lugar, con el fin de intentar mejorar nuestros resultados hemos probado a sustituir por cero todos los valores perdidos.
+- En tercer lugar, ya que no ha sido muy eficiente igualar a cero nuestros NAs, los hemos sutituído por la media de la variable a la que pertenecen (MonthlyIncome o NumberOfDependents).
+- Por último y con lo que mejores resultados hemos obtenido, ha sido mediante la sustitución de los valores perdidos por la mediana de la variable a la que pertenecen, por lo que quedaría de esta manera:
+
+```{r}
+credit_train$MonthlyIncome[is.na(credit_train$MonthlyIncome)] <- round(median(credit_train$MonthlyIncome, na.rm = TRUE))
+credit_train$NumberOfDependents[is.na(credit_train$NumberOfDependents)] <- round(median(credit_train$NumberOfDependents, na.rm = TRUE))
+# View(credit_train)
+```
+
+#### MUESTRA DE TEST
+
+Para poder predecir la muestra de test utilizando el modelo realizado con la muestra de train, es necesario cargar los datos de esta muestra:
+
+```{r}
+credit_test <- read.csv("cs-test.csv")
+```
+
+Observamos que, al igual que con la muestra de entrenamiento, eliminaremos la primera columna correspondiente a la variable "x"
+```{r}
+credit_test <- credit_test[,-1]
+```
+
+Realizamos un summary y, podemos ver que guardan una pequeña relación con la muestra de entrenamiento:
+```{r}
+summary(credit_test)
+```
+
+Utilizando la función que hemos creado vamos a ver los valores perdidos de cada variable:
+```{r}
+sapply(credit_test, na)
+```
+
+Hemos realizado el mismo proceso que el utilizado en la muestra de entrenamiento para el tratamiento de los valores perdidos: sustituimos por la mediana.
+
+```{r}
+credit_test$MonthlyIncome[is.na(credit_test$MonthlyIncome)] <- round(median(credit_test$MonthlyIncome, na.rm = TRUE))
+credit_test$NumberOfDependents[is.na(credit_test$NumberOfDependents)] <- round(median(credit_test$NumberOfDependents, na.rm = TRUE))
+```
+
+
+
+
+

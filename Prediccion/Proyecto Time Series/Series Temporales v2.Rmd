@@ -1,0 +1,347 @@
+---
+title: "Examen Series Temporales"
+author: "Álvaro de Prada"
+date: "2/2/2018"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+El Consejo de Administración de un Banco ha decido implementar un nueva linea de
+negocio, y desea crear un division de “Crédito para la Compra de Automoviles”. Las
+preocupaciones que tiene el Consejo, son sobre cuales serán las matriculaciones futuras
+de automoviles y desea que se realicen las predicciones mensuales para el año 2018 y
+2019. Utiliza como mínimo modelos ETS y ARIMA. Los datos están en el fichero
+automoviles.csv. ¿Qué variable utilizarías para realizar un modelo de Función de
+Trasnferencia? ¿Y para un VAR?
+
+En primer lugar cargaremos las librerías que emplearemos en el proceso de responder a la pregunta planteada:
+
+
+```{r ,results='hide'}
+library(forecast)
+library(plotly)
+library(moments) 
+library(ggfortify)
+library(readr)
+library(gridExtra)
+library(ggplot2)
+library(quantmod)
+library(ggthemes)
+```
+
+A continuación cargamos el dataset que contiene los datos que emplearemos:
+
+```{r}
+library(readr)
+automoviles <- read_delim("automoviles.csv", 
+    ";", escape_double = FALSE, col_types = cols(Unidades = col_number(), 
+        Year = col_integer()), trim_ws = TRUE)
+```
+
+
+
+Y hacemos un summary para tener una visión general de los datos:
+```{r}
+summary(automoviles)
+```
+En este punto podemos compobar que los datos no contienen NAs.
+
+```{r}
+str(automoviles)
+```
+
+Nos quedamos unicamente con la columna de las matriculaciones
+```{r}
+automoviles.formato <- automoviles[3]
+```
+
+
+
+Convertimos los datos a <zoo>, partiendo de la fecha de 1993 ya que nuestro dataset empieza en el enero de 1993, y especificamos que es mensual:
+```{r}
+date <-seq(as.Date("1993/01/01"), as.Date("2017/12/01"),"month") 
+date <- as.yearmon(date, "%Y%m")
+matriculaciones<- zoo(automoviles.formato, date)
+
+colnames(matriculaciones)<-c("Matriculaciones")
+
+head(matriculaciones)
+```
+
+
+
+
+A continuación representamos gráficamente los datos anteriores (ventas), 
+```{r}
+matriculaciones.plot <- autoplot(matriculaciones) + 
+  labs(y="Matriculaciones",x="Tiempo")+
+  ggtitle("Automóviles", subtitle ="Matriculaciones Mensuales") +
+  theme_minimal() + 
+  geom_smooth(aes(y=(matriculaciones)),method = loess,span=0.35,se=F,size=0.4,col="red") 
+matriculaciones.plot
+```
+
+En la gráfica podemos observar que hasta el año 2008 aproximadamente, las ventas van en aumento. A partir de este punto las ventas caen en picado hasta que en el periodo 2013 aproximadamente vuelven a iniciar una tendencia alcista. Esto está directamente relacionado con la crisis vivida, la cual produjo un descenso drástico del número de matriculaciones
+
+
+
+
+A continuación creamos un nuevo dataset que omita los 24 últimos periodos:
+```{r}
+omitido=24
+longitud=length(matriculaciones)
+totalMatriculaciones <- window(matriculaciones,start=index(matriculaciones),end=index(matriculaciones[longitud-omitido]))
+```
+
+
+Y procedemos a crear los modelos de predicción ETS y HW (Holt-Winters):
+```{r}
+ets1 <- ets(totalMatriculaciones)
+ets2 <- ets(totalMatriculaciones,damped=T)
+ets3 <- ets(totalMatriculaciones, allow.multiplicative.trend=T) 
+hw4 <- hw(totalMatriculaciones,seasonal="additive")
+hw5 <- hw(totalMatriculaciones,seasonal="multiplicative")
+hw6 <- hw(totalMatriculaciones,seasonal = "additive",damped = T)
+hw7 <- hw(totalMatriculaciones,seasonal = "multiplicative",damped = T)
+```
+
+Construimos el DataFrame con los modelos anteriores:
+```{r}
+totalMatriculaciones.df <- data.frame(totalMatriculaciones, 
+                            ets1$fitted,
+                            ets2$fitted, 
+                            ets3$fitted, 
+                            hw4$fitted, 
+                            hw5$fitted, 
+                            hw6$fitted, 
+                            hw7$fitted)
+```
+
+ate <-seq(as.Date("1993/01/01"), as.Date("2017/12/01"),"month") 
+```{r}
+#quitamos los últimos 2 años de la secuencia de fechas:
+date <- seq(as.Date("1993/01/01"), as.Date("2015/12/01"),"month") 
+date <- as.yearmon(date, "%Y%m")
+matriculaciones.fit <- zoo(totalMatriculaciones.df, order.by = date)
+```
+
+Definimos nuestra gráfica:
+```{r}
+etsfits <- autoplot(matriculaciones.fit, facet=NULL) + 
+  labs(y="Matriculaciones",x="Tiempo") +
+  ggtitle("Visualización de modelo ETS y H-T en matriculaciones de vehículos") +
+  theme_minimal() + 
+  scale_color_economist(labels=c("Original",
+                                 "ETS(M,A,M)",
+                                 "ETS (M,Ad,M)",
+                                 "ETS (M,Md,M)",
+                                 "H-W' método aditivo",
+                                 "HW' método multipicativo",
+                                 "Damped H-W' método aditivo",
+                                 "Damped H-W' método multiplicativo"
+)) + theme(legend.position = "bottom") 
+```
+
+Y la llamamos:
+```{r}
+etsfits
+```
+
+A simple vista, en la grafica se ve como todos los modelos estiman de forma similar existiendo pequeñas diferencias. 
+A continuación vamos a calcular los errores de cada modelo para averiguar cual de todos ellos predice mejor:
+```{r}
+e1=forecast(ets1) 
+e2=forecast(ets2) 
+e3=forecast(ets3) 
+e4=forecast(hw4) 
+e5=forecast(hw5) 
+e6=forecast(hw6) 
+e7=forecast(hw7)
+```
+
+Y comprobamos la precisión de las predicciones definidas en el anterior chunk:
+```{r}
+accuracy(e1)
+```
+```{r}
+accuracy(e2)
+```
+```{r}
+accuracy(e3)
+```
+```{r}
+accuracy(hw4)
+```
+```{r}
+accuracy(hw5)
+```
+```{r}
+accuracy(hw6)
+```
+```{r}
+accuracy(hw7)
+```
+
+Leyenda de los resultados obtenidos:
+ME: Mean Error||RMSE: Root Mean Squared Error||MAE: Mean Absolute Error||MPE: Mean Percentage Error||MAPE: Mean Absolute Percentage Error||MASE: Mean Absolute Scaled Error||ACF1: Autocorrelation of errors at lag 1
+
+Asumiremos que el modelo con menor RMSE puede ser el que mejor prediga. En este caso comprobamos que ese modelo se trata del 7, correspondiente  un holt winters con seasonal multiplicativo.
+
+Por ello procederemos a realizar un summary sobre dicho modelo:
+
+```{r}
+summary(hw7)
+```
+
+
+Comprobamos los residuos, donde podemos ver que no hay white noise (generalmente los residuos sí tienen white noise, mientras que el modelo no).
+```{r}
+checkresiduals(hw7)
+```
+
+
+
+A continuación realizamos la gráfica de este modelo comparando en ella las matriculaciones reales contra la predicción del modelo:
+```{r}
+e7 = forecast(hw7) 
+plotets <- autoplot(e7)+
+labs(y="Ventas",x="Tiempo")+ 
+  ggtitle("Predicción Modelo 'Damped H-W' método multiplicativo")+ 
+  theme_minimal()+ 
+  scale_colour_economist()+ 
+  theme(legend.position = "bottom")
+plotets
+```
+Finalmente comprobamos que nuestro séptimo modelo lleva a cabo predicciones bastante satisfactorias. En la gráfica nuestro modelo se corresponde con la parte sombreada, siendo las distintas tonalidades de los colores correspondientes a los distintos niveles de confianza para los intervalos de predicción, mientras que la serie real de datos se corresponde con la línea. Podemos comprobar que si bien los márgenes de la parte sombreada pueden parecer extensos, predice correctamente los factores estacionarios.
+
+# Modelo ARIMA:
+
+A continuación realizaremos el mismo analisis predictivo utilizando el modelo ARIMA.
+El modelo ARIMA precisa que los residuos no sean predecibles, es decir, que sean totalmente aleatorios.
+
+En el siguiente chunk ejecutamos la funcion de autocorrelación sobre las ventas totales:
+```{r}
+acf(diff(totalMatriculaciones))
+```
+Y la autocorrelación parcial:
+```{r}
+pacf(diff(totalMatriculaciones))
+```
+
+Procedemos a elaborar los modelos ARIMA:
+```{r}
+arima1 <- auto.arima(totalMatriculaciones, approximation = F)
+arima2 <- auto.arima(totalMatriculaciones,lambda=0, approximation = F)
+arima3 <- auto.arima(totalMatriculaciones, lambda=0, approximation = F,stepwise = F) 
+arima4 <- auto.arima(totalMatriculaciones,approximation = F,stepwise = F)
+```
+
+Y ejecutamos Box.text para los 4 modelos, que nos ayudará a comprobar si los residuos son realmente aleatorios:
+```{r}
+Box.test(arima1$residuals,lag=12, fitdf=3, type="Lj")
+```
+
+```{r}
+Box.test(arima2$residuals,lag=12, fitdf=3, type="Lj")
+```
+
+```{r}
+Box.test(arima3$residuals,lag=12, fitdf=3, type="Lj")
+```
+
+```{r}
+Box.test(arima4$residuals,lag=12, fitdf=3, type="Lj")
+```
+El Box.test de los tres primeros modelos tienen p-valor reducidos, lo que nos impide rechazar la hipotesis nula del test Ljung. Por lo tanto lo descartamos ya que los residuos no son ruido blanco.
+
+
+Tras descartar los tres primeros modelos, procederemos a hacer la predición del cuarto modelo, el cual tiene un p-valor de 0,059:
+```{r}
+e2.4=forecast(arima4)
+accuracy(e2.4)
+```
+
+```{r}
+plotarima <- autoplot(e2.4)+
+  labs(y="matriculaciones",x="Fecha")+
+  ggtitle("Predicción Modelo ARIMA")+
+  theme_minimal()+
+  scale_color_economist()+
+  theme(legend.position = "bottom")
+plotarima
+```
+Comprobamos que la parte sombreada se encuentra bastante ajustada a la línea que representa la serie temporal real.
+
+# Comparación ETS y ARIMA
+
+```{r}
+grid.arrange(plotets,plotarima,ncol=1)
+```
+
+Podemos ver que los gráficos de ambos modelos se ajustan en buena medida a la realidad. Por ello, ambos modelos podrían ser válidos para predecir los años posteriores en cuanto a las matriculaciones de los vehículos. Sin embargo, vamos a elegir aquel que parece haber dado unas predicciones más precisas sobre los años que ya conocíamos. Aparentemente el modelo que más parece ajustarse en las gráficas es el ETS. Lo comproobaremos comparando el Root Mean Square Error (RMSE) de ambos modelos:
+```{r}
+accuracy(hw7) #ETS
+```
+El modelo ETS Damped Holt-Winters Multiplicative tiene un RMSE de 8989.695.
+```{r}
+accuracy(e2.4) #ARIMA
+```
+El modelo ARIMA tiene un RMSE de 10784.88.
+Por lo tanto el modelo ETS con menor RMSE parece ser el que mejores resultados de predicción ha dado.
+
+Es por ello que llevaremos a cabo la predicción de los 2 siguientes años (2018 y 2019) con el modelo ETS.
+ 
+# Pronóstico de matriculaciones en 2018 y 2019. Modelo ETS Damped Holt-Winters Multiplicative.
+
+Para llevar a cabo la predicción de los dos próximos años lo primero que necesitamos es emplear el dataset original con el total de matriculaciones. Esta vez no quitaremos periodos ya que queremos hacer pronósticos sobre años que no aparecen en el. Por lo tanto el modelo además tendrá más datos con los que entrenarse. A continuación creamos el modelo sobre el total de matriculaciones:
+```{r}
+hwFINAL <- hw(matriculaciones, seasonal = "multiplicative", damped = T)
+```
+
+Procedemos a hacer el forecast del modelo, indicándoles que el número de periodos a sobre los que hacer el forecast es de 24, siendo el equivalente a 2 años.
+```{r}
+fFINAL <- forecast(hwFINAL, h = 24)
+accuracy(fFINAL)
+```
+Al emplear la función accuracy sobre la predicción obtenemos un RMSE 8699.521, menos que en los forecast realizados con los anteriores modelos.
+Procedemos por último a visualizar este forecast:
+
+```{r}
+plotFINALets <- autoplot(fFINAL)+
+  labs(y = "matriculaciones",x="fecha")+
+  ggtitle("Predicción Damped Holt-Winters' multiplicative method")+
+  theme_minimal()+
+  scale_colour_economist()+
+  theme(legend.position = "bottom")
+plotFINALets
+```
+
+
+
+# Conclusión:
+
+En primer lugar hemos analizado los datos y hemos comprobado que existe un fuerte bajón el cual está vinculado a la crisis financiera, que redujo de forma sustancial las matriculaciones de vehículos. Actualmente nos encontramos en un proceso de recuperación y esto se muestra en los datos en donde podemos ver que vuelve a producirse una tendencia alcista.
+
+Hemos llevado a cabo el proceso de predicción a través de distintos modelos de series temporales. Finalmente nos hemos quedado con el Modelo ARIMA y con Dampled Holt-Winters, ya que hemos comprobado que eran los que menor error tenían. A través de la comparación de gráficas y de RMSE hemos concluído que en este caso, el modelo ETS es el que mejores resultados ha dado.
+Hemos de aclarar que ambos modelos predicen de forma bastante correcta y similar, siendo el modelo ETS el que predice de una forma más óptima en base a los datos empleados.
+
+
+Finalmente, respondiendo a la pregunta de negocio:
+
+¿Cúales serán las matriculaciones futuras de automoviles para el año 2018 y 2019?
+Hemos obtenido a través del modelo ETS el siguiente gráfico con los posibles comportamientos que pueden tomar las matriculaciones en los próximos 2 años. Podemos observar que el forecast presenta una cierta horizontalidad en el número de matriculaciones, no siendo claramente visible ni una tendencia alcista ni una bajista. Por lo tanto concluimos afirmando que los forecast producidos por el modelo de series temporales que mejores resultados ha mostrado, muestra una consolidación de la horizontalidad vivida en el último año, y la prolonga hasta 2019.
+
+
+
+# Preguntas adicionales:
+
+## ¿Qué variable utilizarías para realizar un modelo de Función de Trasnferencia? ¿Y para un VAR?
+
+Las funciones de transferencia permiten especificar la manera en que los valores pasados de las variables independientes (predictor) se utilizan para pronosticar valores futuros de la serie dependiente. Para realizar un modelo de Función de transferencia sobre el modelo de arima podríamos emplear la función 'arima' o 'arimax' de la librería TSA. En dichas funciones se incluye la posibilidad de añadir función de transferencia al modelo a través de los parámetros 'xtransf' y 'transfer' de la función, en donde tendríamos que indicar los datos relativos a la función de transferencia.
+
+Por otro lado, VAR o Vector Autoregressive model podríamos implementarlo a través de la función VAR() de la librería LPTime  y que tiene la siguiente forma: VAR(y, p = 1, exogen = NULL), donde Y = Variable endógena para el modelo VAR, p = lag-order para el modelo autorregresivo, y exogen = Variable exógena para el modelo VAR.

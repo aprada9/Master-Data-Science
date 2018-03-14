@@ -1,0 +1,374 @@
+---
+title: "Examen Predicción Final"
+author: "Alvaro de Prada"
+date: "2/2/2018"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introducción:
+
+Para el desarrollo del presente trabajo se ha proporcionado un dataset con un total de 1239 observaciones, representando cada una de ellas a una empresa. Para cada observación se incluye el valor de diferentes ratios específicos calculados a partir de la contabilidad de una empresa. Estos ratios comparan años anteriores para obtener una cifra. Finalmente, vada observación consta de una columna final llamada 'Manipulater', la cual indica si 
+El objetivo es desarrollar un modelo o modelos de predicción eficientes a la hora de predecir una variable clasificatoria. La variable clasificatioria a prediecir es la llamada "Manipulater" tomará el valor Yes o No en función de si se ha descubierto que la empresa manipulaba la contabilidad y por tanto cometía fraude. 
+Por lo tanto, se tratará averiguar si los ratios aportan información suficiente para poder predecir si una empresa está manipulando o no su contabilidad.
+
+## Datos:
+
+
+En primer lugar procedemos a cargar las librerías que emplearemos a lo largo del trabajo, así como los datos para llevar a cabo un análisis exploratorio:
+
+```{r}
+library(readxl)
+library(Hmisc)
+library(caret) # Matriz de confusión
+library(mlr) # Método Oversampling
+```
+
+```{r}
+dataset_orig <- read_excel("DATASET_RAQ_JMLZ(1).xlsx")
+dataset_orig <-as.data.frame(dataset_orig[,2:10]) # Eliminamos Company ID y añadimos una columna.
+dataset_orig$Manipulater <- as.factor(ifelse(dataset_orig$Manipulater == 'Yes', 1, 0)) # Transformamos la variable Manipulater
+str(dataset_orig)
+```
+En estos primeros pasos del formateo de datos hemos:
+ - Eliminado la primera columna ya que no aporta información adicional.
+ - Transformado la variable Manipulater a factor para poder trabajar con ella.
+ 
+A continuación vamos a hacer un summary para conocer los principales datos de las variables:
+```{r}
+summary(dataset_orig)
+```
+
+De esta tabla sacamos varias conclusiones:
+ - El dataset no contiene NAs.
+ - La mayoría de los indicadores tienen una media cercana al 1, pero muchos tienen mínimos o máximos muy alejados a la media. Esto será estudiado posteriormente para concluir si existen outliers y que acciones tomar.
+ 
+ - La variable manipulater está muy poco balanceada. Posteriormente se propondrán distintos métodos para balancearla.
+
+Una vez conocemos las variables de las que se compone nuestro dataset, se ha llevado a cabo una breve investigación y en la que se ha descubierto que todas estas variables son empleadas a la hora de calcular el M-Score de Beneish.
+
+# Análisis de Outliers:
+Al no haber encontrado NAs, vamos a comprobar si existen outliers en el dataset que puedan hacer que los resultados de nuestro trabajo posterior se vean perjudicados por datos erróneos. Para ello emplearemos la distancia de Cook:
+```{r}
+mod <- glm(Manipulater ~ ., data=dataset_orig, family = "binomial")
+cooksd <- cooks.distance(mod)
+# Influence measures
+# In general use, those observations that have a cook’s distance greater than 4 times the mean may be classified as influential. This is not a hard boundary.
+```
+Y la representamos gráficamente. Todos los puntos por encima de la línea roja pueden ser considerados outliers, ya que difieren mucho del resto de observaciones en cuanto a la desviación típica media de las variables.
+```{r}
+plot(cooksd, pch="*", cex=2, main="Influential Obs by Cooks distance")  # plot cook's distance
+abline(h = 4*mean(cooksd, na.rm=T), col="red")  # add cutoff line
+text(x=1:length(cooksd)+1, y=cooksd, labels=ifelse(cooksd>4*mean(cooksd, na.rm=T),names(cooksd),""), col="red")  # add labels
+
+```
+
+Vemos que hay varias observaciones que pueden ser outliers, vamos a obtener la tabla con todas las observaciones que identifica como outlier para poder analizarlos:
+```{r}
+influential <- cooksd>4*mean(cooksd, na.rm=T)  # influential row numbers
+outliers1 <- (dataset_orig[influential, ])  # influential observations.
+outliers1
+```
+Esta tabla arroja mucha información, la más relevante es la siguiente:
+ - Podemos ver que clasifica a muchas de las observaciones como outliers ya que en alguna de sus variables tienen valores que se alejan excesivamente de la media. Recordemos que la mayoría de las variables tenían una media cercana al 1. Sin embargo en estas observaciones vemos, por ejmplo en la primera observación, que el valor del ratio AQI es de 7.18, muy alejado de la media. Si vamos observación a observación podremos ver que situaciones similares se repiten en todasa. En total, 24 observaciones.
+ - ¿Debemos considerarla outliers y eliminarlas del dataset?
+ Por un lado si podríamos decir que se trata de outliers. Sin embargo, de las 24 observaciones obtenidas, 19 son de Manipulater=1. Recordemos que en el dataset completo existían un total de 39 Manipulater=1/Yes. Es decir, más de la mitad de las observaciones de tipo Manipulater=1/Yes están compuestas de algún tipo de outlier. 
+
+Por lo tanto, la conlcusión que obtenemos es que si bien pueden tratarse de outliers, lo más probable es que el propio hecho de que alguno de los ratios contena un outlier eleva la probabilidad de que se esté manipulando la contabilidad. Por lo tanto, no podemos quitar los outliers del dataset ya que nos están aportando una información muy valiosa.
+
+
+# Beneish M Score:
+El M-Score de Beneish fue creado por el profesor Messod Beneish. Se trata de un indicador para detectar la manipulación de ingresos en las empresas. (Messod D. Beneish, 1999)
+
+Su funcionamiento es simple. Le da un peso concreto a cada uno de los ocho indicadores incluidos en el dataset del presente trabajo para crear un nuevo indicador. 
+
+M-Score = -4.84 + 0.92*DSRI + 0.528*GMI + 0.404*AQI + 0.892*SGI + 0.115*DEPI – 0.172*SGAI + 4.679*ACCR – 0.327*LEVI
+
+Un M-Score mayor a -1.78 indicaría una elevada probabilidad de manipulación.
+
+Por lo tanto, lo que haremos será crear una nueva columna en nuestro dataset original que incluya el resultado del M-Score para cada observación, para posteriormente poder trabajar con esta columna, a sabiendas de que está correlacionada con el resto.
+
+```{r}
+mscore <- -4.84 + 0.92*dataset_orig$DSRI + 0.528*dataset_orig$GMI + 0.404*dataset_orig$AQI + 0.892*dataset_orig$SGI + 0.115*dataset_orig$DEPI - 0.172*dataset_orig$SGAI + 4.679*dataset_orig$ACCR - 0.327*dataset_orig$LEVI
+```
+
+```{r}
+dataset_orig <- cbind(dataset_orig, mscore)
+summary(dataset_orig)
+```
+
+Con esto damos por concluido el tratamiento previo de los datos.
+
+## Predicción: glm
+
+A continuación vamos a llevar a cabo un modelo predictivo sobre el dataset tratado. Previamente, dividiremos el dataset tratado en muestra de training y test, al 70-30.
+
+```{r}
+set.seed(200)
+sep1 <- sample(nrow(dataset_orig), 0.7*nrow(dataset_orig)) 
+train1 <- dataset_orig[sep1,]
+test1 <- dataset_orig[-sep1,]
+```
+
+Comprobamos la distribución de la variable a predecir para asegurarnos de que el peso está equilibrado.
+```{r}
+describe(train1$Manipulater)
+```
+```{r}
+describe(test1$Manipulater)
+```
+Vemos que en ambas muestras hay aproximadamente un 3% de observaciones con manipulaciones, por lo que está balanceado.
+
+
+Llevamos a cabo un primer modelo con todas las variables menos con el m-score, ya que no tendría sentido pues está correlacionada con todas las demás.
+```{r}
+modelo1 <- glm(Manipulater ~.-mscore  , data=train1, family = "binomial")
+summary(modelo1)
+```
+Vemos que hay algunas variables más significativas que otras. Ejecutamos la función step sobre el modelo para tratar de averiguar que combinación de variables es la mejor.
+```{r}
+step(modelo1)
+```
+Repetimos el modelo utilizando las variables SGI,GMI, ACCR, AQI y DSRI, pues son las que nos han dado un AIC menor.
+
+```{r}
+modelo1 <- glm(Manipulater ~.-mscore -DEPI -SGAI -LEVI  , data=train1, family = "binomial")
+summary(modelo1)
+```
+A pesar de que algunas variables parecen no ser significativas, hemos llevado a cabo varias pruebas y hemos comprobado que el AIC es menor con dichas variables icluidas.
+Llevamos  a cabo la predicción sobre la muestra de test con nuestro modelo:
+
+```{r}
+prediction1 <- predict(modelo1, test1, type="response")
+```
+
+Finalmente comprobamos el accuracy de nuestro modelo con la matriz de confusión:
+```{r}
+confusionMatrix(test1$Manipulater, round(prediction1))
+```
+Obtenemos un 97.31% de precisión.
+
+A continuación vamos a hacer un modelo con la variable m-score creada:
+```{r}
+modelo2 <- glm(Manipulater ~mscore  + DSRI, data=train1, family = "binomial")
+summary(modelo2)
+```
+Tras realizar varias pruebas hemos concluido que la variable m-score junto con DSRI obtiene un AIC menor. 
+
+A continuación predecimos con este nuevo modelo que emplea el m-score:
+
+```{r}
+prediction2 <- predict(modelo2, test1, type="response")
+```
+
+Finalmente comprobamos el accuracy de nuestro modelo con la matriz de confusión:
+```{r}
+confusionMatrix(test1$Manipulater, round(prediction2))
+```
+Obtenemos un 97.04% menor que en el anterior modelo. 
+
+Finalmente, aunque no sea una predicción como tal, vamos a poner en práctica la teoría del M-Score que dice que un m-score mayor de -1.78 tiene probabilidad elevada de manipular. Para ello, llevaremos a cabo la prueba sobre el total de datos, ya que no se trata de un modelo que haya sido entrenado y por lo tanto no es necesario utilizar la muestra de test.
+
+```{r}
+manip_mscore <- ifelse(dataset_orig$mscore>-1.78,1,0)
+```
+
+```{r}
+confusionMatrix(dataset_orig$Manipulater, manip_mscore)
+```
+Vemos que el m-score predice peor que los modelos desarrollados.
+
+Sin embargo, lo que observamos tras llevar a cabo los tres modelos anteriores, es que al haber muy pocos datos de empresas que manipuilan, el hecho de concluir que ninguna empresa manipula obtendría un porcentaje de acierto superior al resto de modelos. Comprobémoslo:
+
+```{r}
+nulo <- 0
+dataset_orig <- cbind(dataset_orig, nulo)
+```
+```{r}
+confusionMatrix(reference= dataset_orig$Manipulater, dataset_orig$nulo)
+```
+Comprobamos que si dijeramos que ninguna empresa manipula, acertaríamos un 96.85% de las veces. Este porcentaje es ligeramente inferior al de las predicciones, lo cual nos plantea ciertas cuestiones:
+
+  ¿Están los modelos sesgados por el propio peso de la variable a predecir?
+  ¿Podemos hacer algo para balancear los dataset y que así los modelos tengan una mayor fiabilidad?
+  
+
+## Oversampling y Undersamplning:
+(source: https://mlr-org.github.io/mlr-tutorial/release/html/over_and_undersampling/index.html)
+
+Las anteriores preguntas nos llevan a encontrar posibles soluciones a un dataset desequilibrado en un problema de clasificación. Estas soluciones son los métododos de basados en muestreo:
+
+ - Oversampling: Consiste en generar observaciones adicionales de la clase minoritaria (en nuestro caso las observaciones con Manipulater=Yes), mediante la creación de copias exactas de observaciones minoritarias existentes, mientras que la clase mayoritaria no se manipula, sigue siendo constante.
+
+ - Oversampling-Smote: Se trata de una variación del oversampling que sigue la misma metodología, salvo que en lugar de duplicar observaciones minoritarias (que podría ocasionar overfitting), con este método las nuevas observaciones de la clase minoritaria son creadas siguiendo el método de los vecinos más cercanos.
+ 
+ - Undersampling: Esta técnica seria la contraria a las anteriores, ya que consiste en la eliminación de variables mayoritarias para conseguir de esta manera equilibrar las proporciones.
+ 
+
+Por lo tanto, el oversampling estandar no lo vamos a emplear ya que el smote nos parece más correcto por su forma de proceder. Con lo cual, a continuación vamos a crear 2 nuevos datasets, uno con cada técnica, para repetir los modelos de predicción anteriores sobre estos nuevos datasets más equilibrados. (Librería mlr)
+
+
+Utilizando la función makeClassifTask indicamos cual es la variable que está desequilibrada, la variable que queremos predecir:
+```{r}
+task = makeClassifTask(data = dataset_orig[,-(10:11)], target = "Manipulater")
+```
+
+
+Implementamos la función de Smoting:
+```{r}
+task.smote = smote(task, rate = 8, standardize = T) # fijamos standarize a True para un mejor calculo de la distancia de gower.
+```
+
+Implementamos la función de Undersampling:
+```{r}
+task.under = undersample(task, rate = 1/8)
+```
+
+Comprobamos como la variable manipulater se encuentra más equilibrada con los tres métodos:
+
+```{r}
+table(getTaskTargets(task.smote))
+table(getTaskTargets(task.under))
+```
+Finalmente creamos los tres nuevos datasets:
+
+```{r}
+smote_dataset <- task.smote$env$data
+under_dataset <- task.under$env$data
+```
+
+A continuación repetiremos los pasos realizados en las predicciones del inicio del trabajo para los nuevos datasets. Como los pasos son los mismos, no requieren expicación esta vez.
+
+# Modelo con oversampling - Smote:
+
+```{r}
+set.seed(200)
+sep2 <- sample(nrow(smote_dataset), 0.7*nrow(smote_dataset)) 
+smotetrain <- smote_dataset[sep2,]
+smotetest <- smote_dataset[-sep2,]
+```
+
+Comprobamos la distribución de la variable a predecir para asegurarnos de que el peso está equilibrado.
+```{r}
+describe(smotetrain$Manipulater)
+```
+```{r}
+describe(smotetest$Manipulater)
+```
+Vemos que las observaciones con manipulación han pasado del 3% al 20%.
+
+
+Tras varias pruebas obtenemos que este modelo resulta eficiente:
+```{r}
+modelosmote1 <- glm(Manipulater ~ LEVI + GMI + SGI + AQI + ACCR + DSRI  , data=smotetrain, family = "binomial")
+summary(modelosmote1)
+```
+
+Llevamos  a cabo la predicción sobre la muestra de test con nuestro modelo:
+
+```{r}
+predictionsmote1 <- predict(modelosmote1, smotetest, type="response")
+```
+
+Finalmente comprobamos el accuracy de nuestro modelo con la matriz de confusión:
+```{r}
+confusionMatrix(smotetest$Manipulater, round(predictionsmote1))
+```
+Obtenemos un 85.46% de precisión.
+
+¿Qué precisión obtendríamos si dijéramos que todos las observaciones son 'Manipulater = No'?
+
+```{r}
+nulo <- 0
+smote_dataset1 <- cbind(smote_dataset, nulo)
+```
+```{r}
+confusionMatrix(reference = smote_dataset1$Manipulater, smote_dataset1$nulo)
+```
+Obtendríamos sólo un 79.37% de precisión, mucho menor que con el dataset original.
+
+
+# Modelo con undersampling:
+
+```{r}
+set.seed(200)
+sep3 <- sample(nrow(under_dataset), 0.7*nrow(under_dataset)) 
+undertrain <- under_dataset[sep3,]
+undertest <- under_dataset[-sep3,]
+```
+
+Comprobamos la distribución de la variable a predecir para asegurarnos de que el peso está equilibrado.
+```{r}
+describe(undertrain$Manipulater)
+```
+```{r}
+describe(undertest$Manipulater)
+```
+Vemos que las observaciones con manipulación han pasado del 3% al 20%.
+
+
+Tras varias pruebas obtenemos que este modelo resulta eficiente:
+```{r}
+modelounder1 <- glm(Manipulater ~ GMI + AQI + SGI + ACCR + DSRI, data=undertrain, family = "binomial")
+summary(modelounder1)
+```
+
+Llevamos  a cabo la predicción sobre la muestra de test con nuestro modelo:
+
+```{r}
+predictionunder1 <- predict(modelounder1, undertest, type="response")
+```
+
+Finalmente comprobamos el accuracy de nuestro modelo con la matriz de confusión:
+```{r}
+confusionMatrix(undertest$Manipulater, round(predictionunder1))
+```
+Obtenemos un 87.72% de precisión.
+
+¿Qué precisión obtendríamos si dijéramos que todos las observaciones son 'Manipulater = No'?
+
+```{r}
+nulo <- 0
+under_dataset1 <- cbind(under_dataset, nulo)
+```
+```{r}
+confusionMatrix(reference = under_dataset1$Manipulater, under_dataset1$nulo)
+```
+Obtendríamos sólo un 79.37% de precisión, mucho menor que con el dataset original.
+
+
+## Conclusiones:
+
+En primer lugar, hagamos una recapitulación de las partes elaboradas en este traajo:
+  - Carga de datos y limpieza (si procediera). Análisis exploratorio.
+  - Análisis de outliers.
+  - Explicación M-Score.
+  - Modelos glm con dataset original. Prueba del M-Score.
+  - Técnicas de oversampling y undersampling.
+  - Modelos glm con datasets de oversampling y undersampling.
+  
+En primer lugar, hemos comprobado que existen outliers en el dataset, pero tras analizarlos hemos optado por no eliminarlos ya que estos outliers coinciden con la clase minoritaria y por lo tanto puede ser un factor fundamental a la hora de predecir si manipula o no. Es decir, ¿es el hecho de que sea outlier un factor de peso a la hora de que manipule?
+
+En segundo lugar, hemos explorado la teoría del M-Score, comprobándo que aunque es eficiente, obtiene una precisión menor que los modelos que hemos desarrollado en este trabajo.
+
+En tercer lugar hemos desarrollado varios modelos de predicción con el dataset original que obtenían precisiones de más del 95%. Si bien ésta es una cifra admirable, no nos hemos conformado puesto que hemos comprobado que una predicción en la que todos los valores a predecir sean definidos a 0 obtendría la misma precisión. Por este motivo, hemos llegado a la conlusión de que un dataset desequilibrado estaba produciendo overfiting, es decir, el modelo estaba viendo que en el más del 90% de los casos la predicción era 0, y estaba teniendo esto en cuenta a la hora de estimar el modelo, quedando por lo tanto sesgado. Esto se vería más claramente al tratar de predecir un nuevo conjunto, en el que todas las observaciones fueran Manipulater = 1. En este caso lo más probable es que el modelo predijera mucho peor y su precisión se redujera sustancialmente. Por las limitaciones de tiempo, este caso no ha podido ser demostrado.
+
+Por este motivo, hemos llevado a cabo técnicas de muestreo de oversampling en su variante smote, la cual crea nuevas observaciones de la clase minoritaria ('Manipulater = Yes') basándose en técnicas de vecinos más cercanos. También hemos empleado la técnica de undersampling que elimina observaciones mayoritarias. El objetivo de ambas técnicas es el mismo; equilibrar en la medida de lo posible el peso de la variable a predecir en el dataset.
+
+Hemos repetido los modelos de predicción con estos dos nuevos dataset y hemos obtenido,
+    Oversampling-smote: 85.46%
+    Undersampling: 87.72%
+A primera vista estas precisiones son menores que las de los primeros modelos con el dataset original, pero, ¿cual es la precisión en estos modelos de una predicción que diga que todas las observaciones son 'Manipulater = 0'?
+    nulo-Oversampling-smote: 79.37%
+    nulo-Undersampling: 79.37%
+
+Por lo tanto podemos comprobar que si bien la precisión baja, los resultados son más realistas ya que están considerando una población más equilibrada. La precisión de una predicción 'nula' es mucho menor que la predicción del modelo.
+
+Por último comentar que por las limitaciones de tiempo propias del examen no se ha podido demostrar empíricamente que estos modelos con over y undersampling sean mejores, pero podría hacerse llevando a cabo una división del dataset original en 'muestra1' y 'testfinal' (70-30), asegurándonos de que la muestra de test tenga un porcentaje muy elevado de observaciones con manipulater=Yes. Posteriormente habría de llevarse a cabo las técnicas de oversampling sobre el datset 'muestra1' como si éste fuera el dataset original. Finalmente habría que testear los resultados de estos modelos sobre el dataset 'testfinal', el cual no ha sufrido ninguna manipulación y por lo tanto es totalmente fiel a la realidad. Además al haberlo cargado fuertemente de Manipulateer = 1, la precisión de la predicción nula debería ser baja, y el modelo de oversampling y undersampling debería predecir mejor que el modelo estandar.
+
+

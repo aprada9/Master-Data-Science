@@ -1,0 +1,116 @@
+---
+title: "4- REGRESIÓN LOGÍSTICA"
+author: "Jorge Fuertes Argüello"
+date: "17 de enero de 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### INSTALAMOS Y CARGAMOS LIBRERÍAS.
+
+```{r}
+# install.packages("ROCR")
+library(ROCR)
+# install.packages("e1071")
+library(e1071)
+# install.packages("caret")
+library(caret)
+# install.packages("xgboost")
+library(xgboost)
+# install.packages("randomForest")
+library(randomForest)
+# install.packages("quantmod")
+library(quantmod)
+```
+
+### 3- REGRESIÓN LOGÍSTICA
+
+Establecemos la semilla:
+```{r}
+set.seed(1234)
+```
+
+Escogemos muestras de train y test del credit_train, en un primer momento, distribuiremos las muestras en un 80% para la muestra de entrenamiento y un 20% para la muestra de test:
+```{r}
+credit_trainT <- sample(nrow(credit_train), 0.8*nrow(credit_train)) 
+ttrain <- credit_train[credit_trainT,]
+ttest <- credit_train[-credit_trainT,]
+```
+
+Una vez separada la muestra grande de entrenamiento en pequeñas muestras: training (80%) y test (20%), vamos a establecer un modelo de regresión logística (glm) incluyendo todas las variables para comprobar cuales de ellas son más significativas:
+```{r}
+glm <- glm(data=ttrain, SeriousDlqin2yrs~., family = "binomial")
+summary(glm)
+```
+
+Como podemos comprobar en el summary de nuestro primer modelo, la variable "RevolvingUtilizationOfUnsecuredLines" no es significativa para explicar nuestra variable explicada "SeriousDlqin2yrs", por lo que vamos a probar a eliminarla del modelo para ver si finalmente nos mejora la predicción en Kaggle:
+```{r}
+# glm1 <- glm(data=ttrain, SeriousDlqin2yrs~age + NumberOfTime30.59DaysPastDueNotWorse + DebtRatio + MonthlyIncome + NumberOfOpenCreditLinesAndLoans + NumberOfTimes90DaysLate + NumberRealEstateLoansOrLines + NumberOfTime60.89DaysPastDueNotWorse + NumberOfDependents, family = "binomial")
+# summary(glm1)
+```
+Hemos dejado comentada esta última regresión debido a que finalmente en Kaggle la que mejor resultado nos ha ofrecido es la primera incluyendo todas las variables.
+
+Llevamos a cabo la predicción del modelo realizado para el 20% correspondiente a la muestra de test:
+```{r}
+glm0 <- predict(glm, newdata = ttest, type = 'response')
+
+glm0[is.na(glm0)]<- 0
+ 
+ttest$Probability<- glm0
+```
+
+Establecemos la matriz de confusión para ver los falsos positivos, falsos negativos, verdaderos positivos y verdaderos negativos que nos ha dado nuestro modelo.
+```{r}
+confusionMatrix(data = ttest$SeriousDlqin2yrs, round(glm0))
+```
+
+Nuestro modelo ha determinado 27897 no impagados que realmente eran no impagados y 67 no impagados que realmente eran impagados, así como 1945 impagados que realmente eran no impagados y 91 impagados que realmente eran impagados.
+
+Como conclusión el porcentaje de acierto del modelo es de 93.29% y de no acierto es de 6.71%.
+
+#### Muestra de entrenamiento completa (credit_train):
+
+Esta vez vamos a realizar el mismo proceso pero utilizando la muestra de entrenamiento completa y probando nuestro modelo con la muestra de test (credit_test):
+
+```{r}
+glm2 <- glm(data=credit_train, SeriousDlqin2yrs~., family = "binomial")
+summary(glm2)
+```
+
+Podemos ver que nos vuelve a salir no significativa la variable "RevolvingUtilizationOfUnsecuredLines" por lo que vamos a probar un nuevo modelo sin ella:
+
+```{r}
+# glm3 <- glm(data=ttrain, SeriousDlqin2yrs~ age + NumberOfTime30.59DaysPastDueNotWorse + DebtRatio + MonthlyIncome + NumberOfOpenCreditLinesAndLoans + NumberOfTimes90DaysLate + NumberRealEstateLoansOrLines + NumberOfTime60.89DaysPastDueNotWorse + NumberOfDependents, family = "binomial")
+# summary(glm3)
+```
+
+Nos sucede lo mismo que anteriormente por lo que continuaremos con el modelo compuesto por todas las variables:
+
+```{r}
+predRL <- predict(glm2, newdata = credit_test, type = 'response')
+
+predRL[is.na(predRL)]<- 0
+ 
+credit_test$Probability<- predRL
+```
+
+```{r}
+# confusionMatrix(data = credit_test$SeriousDlqin2yrs, round(glm4))
+```
+
+```{r}
+entry1 <- data.frame(Probability = credit_test$Probability)
+# sum(entry1==1)
+# sum(entry1==0)
+write.csv(entry1, "entry2GLM.csv")
+```
+
+Una vez obtenidos los resultados vamos a elaborar un csv de los mismos para proceder a la observación del resultado final en Kaggle. Una vez subido a kaggle el resultado obtenido de nuestro modelo de regresión logística es de 0.703114, buen resultado para la logística mejorándose considerablemente respecto a la muestra aleatoria de unos y ceros (lógicamente).
+
+
+
+
+
